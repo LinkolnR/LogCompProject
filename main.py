@@ -1,10 +1,66 @@
 # main.py
-
 import sys
 
-SOMA = '+'
-SUB  = '-'
+SOMA = 1
+SUB  = 0
 symbols = [SOMA, SUB]
+
+# Classes
+class Token():
+
+    type : str 
+    value : int
+
+    def __init__(self, type, value):
+        self.type = type
+        self.value = value
+
+
+class Tokenizer():
+    def __init__(self, source, position, next):
+        self.source = source
+        self.position = position
+        self.next = next
+
+    def select_next(self):
+        aux = []
+        while self.source[self.position].isdigit():  
+            aux.append(self.source[self.position])
+            self.position +=1 
+        if aux == []:
+            if self.source[self.position] == '+':
+                self.next = Token('PLUS', SOMA)
+                self.position +=1
+            elif self.source[self.position] == '-':
+                self.next = Token('MINUS', SUB)
+                self.position +=1
+        else:
+            num = int(''.join(aux))
+            self.next = Token(int,num)
+
+        return self.next 
+        
+
+
+class Parser():
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+    
+    @staticmethod
+    def parse_expression(self):
+        token_atual = self.tokenizer.select_nex()
+        
+    
+    @staticmethod
+    def run(self,code):
+
+        tokenizador= Tokenizer(code,0,None)
+
+
+
+
+
+
 
 
 
