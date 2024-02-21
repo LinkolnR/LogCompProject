@@ -23,10 +23,14 @@ class Tokenizer():
         self.next = next
 
     def select_next(self):
+        if self.position >= len(self.source):
+            return Token("EOF", "")
         aux = []
         while self.source[self.position].isdigit():  
             aux.append(self.source[self.position])
             self.position +=1 
+            if self.position >= len(self.source):
+                break
         if aux == []:
             if self.source[self.position] == '+':
                 self.next = Token('PLUS', SOMA)
@@ -36,25 +40,50 @@ class Tokenizer():
                 self.position +=1
         else:
             num = int(''.join(aux))
-            self.next = Token(int,num)
-
+            self.next = Token('int',num)
         return self.next 
         
 
 
 class Parser():
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
+    def __init__(self):
+        self.tokenizer = None
     
-    @staticmethod
+    # @staticmethod
     def parse_expression(self):
-        token_atual = self.tokenizer.select_nex()
+        res = 0 
+        token_atual = self.tokenizer.select_next()
+        while token_atual.value  != '':
+            if token_atual.type == 'int' or token_atual.value in [SOMA,SUB,'']:
+                if (res == 0 and token_atual.type == 'int') :
+                    res = token_atual.value
+                elif token_atual.value == SOMA:
+                    token_atual = self.tokenizer.select_next()
+                    if token_atual.value in [SOMA,SUB]:
+                        raise "string com entrada invalida"
+
+                    res+= token_atual.value
+                elif token_atual.value == SUB:
+                    token_atual = self.tokenizer.select_next()
+                    if token_atual.value in [SOMA,SUB]:
+                        raise "string com entrada invalida"
+                    res-= token_atual.value
+                else:
+                    raise "string com entrada invalida"            
+            else:
+                raise "O valor do token não é um valor válido"
+            token_atual = self.tokenizer.select_next()
+        return res
         
     
-    @staticmethod
+    # @staticmethod
     def run(self,code):
-
         tokenizador= Tokenizer(code,0,None)
+        self.tokenizer = tokenizador
+        resultado = self.parse_expression()
+        return resultado
+
+
 
 
 
@@ -77,58 +106,11 @@ def main():
 
     if minha_string[0] in symbols or minha_string[-1] in symbols:
         raise "Essa string é uma string invalida por não começar e/ou terminar com números"
-    
-    atual = None # Define qual operação está sendo executada, começando em None para pegar o primeiro número
-    res = 0      # Começando o resultado em zero como sendo o elemento neutro
-    LENDO_NUM_INICIAL = 0
-    OPERACAO = 1
-    LENDO_POS_OP = 2
-    ESTADO = LENDO_NUM_INICIAL
 
-    acumulado = []
-    num_2 = []
-    res = 0
-    num = 0
+    parsing = Parser()
+    res = parsing.run(minha_string)
+    print('esse é o resultado : ' ,res)
 
-    # 120 + 310 - 20
-    for caracter in minha_string:
-
-        if ESTADO == LENDO_NUM_INICIAL:
-            if caracter not in symbols:
-                acumulado.append(caracter) # 1 2 0 
-            else:
-                res = int(''.join(acumulado)) # res = 120
-                ESTADO = OPERACAO
-        
-        if ESTADO == LENDO_POS_OP:
-            if caracter not in symbols:
-                num_2.append(caracter)
-            else:
-                num = int(''.join(num_2)) # num = 310
-                ESTADO = OPERACAO
-        
-        if ESTADO == OPERACAO:
-            if atual is not None:
-                if atual == SOMA:
-                    res += num
-                else:
-                    res -= num
-                num_2 = []
-            if caracter == SOMA:       
-                atual = SOMA
-            else:
-                atual = SUB
-            ESTADO = LENDO_POS_OP
-
-    num = int(''.join(num_2))
-    if atual == SOMA:
-        res += num
-    else:
-        res -= num
-  
-    # print(f"para a entrada {minha_string} o resultado obtido foi: {res}")
-    print(res)
-                
             
 if __name__ == "__main__":
     main()
