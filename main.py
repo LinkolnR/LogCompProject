@@ -25,6 +25,8 @@ class Tokenizer():
     def select_next(self):
         if self.position >= len(self.source):
             return Token("EOF", "")
+        while self.source[self.position] == ' ':
+                    self.position +=1
         aux = []
         while self.source[self.position].isdigit():  
             aux.append(self.source[self.position])
@@ -38,9 +40,11 @@ class Tokenizer():
             elif self.source[self.position] == '-':
                 self.next = Token('MINUS', SUB)
                 self.position +=1
+                
         else:
             num = int(''.join(aux))
             self.next = Token('int',num)
+        print(self.next.value, self.next.type)
         return self.next 
         
 
@@ -53,7 +57,10 @@ class Parser():
     def parse_expression(self):
         res = 0 
         token_atual = self.tokenizer.select_next()
+        # print(token_atual.value, token_atual.type)
         while token_atual.value  != '':
+            # print(token_atual.value, token_atual.type)
+
             if token_atual.type == 'int' or token_atual.value in [SOMA,SUB,'']:
                 if (res == 0 and token_atual.type == 'int') :
                     res = token_atual.value
@@ -82,18 +89,7 @@ class Parser():
         self.tokenizer = tokenizador
         resultado = self.parse_expression()
         return resultado
-
-
-
-
-
-
-
-
-
-
-
-
+    
 def main():
 
     # Verifica se há argumentos suficientes
