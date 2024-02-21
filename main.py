@@ -44,7 +44,6 @@ class Tokenizer():
         else:
             num = int(''.join(aux))
             self.next = Token('int',num)
-        print(self.next.value, self.next.type)
         return self.next 
         
 
@@ -57,9 +56,7 @@ class Parser():
     def parse_expression(self):
         res = 0 
         token_atual = self.tokenizer.select_next()
-        # print(token_atual.value, token_atual.type)
         while token_atual.value  != '':
-            # print(token_atual.value, token_atual.type)
 
             if token_atual.type == 'int' or token_atual.value in [SOMA,SUB,'']:
                 if (res == 0 and token_atual.type == 'int') :
@@ -105,7 +102,7 @@ def main():
 
     parsing = Parser()
     res = parsing.run(minha_string)
-    print('esse é o resultado : ' ,res)
+    print(res)
 
             
 if __name__ == "__main__":
