@@ -71,23 +71,27 @@ class Parser():
         while token_atual.value  != END:
 
             if token_atual.type == 'int' or token_atual.value in [SOMA,SUB,END,MULT,DIV]:
-                expression_parts.append(token_atual.value)            
-                # if (res == 0 and token_atual.type == 'int') :
-                #     res = token_atual.value
-                # elif token_atual.value == SOMA:
-                #     expression_parts.append(token_atual.value) 
-                #     token_atual = self.tokenizer.select_next()
-                #     if token_atual.value in [SOMA,SUB]:
-                #         raise "string com entrada invalida"
-                #     res+= token_atual.value
+                # expression_parts.append(token_atual.value)            
+                if (res == 0 and token_atual.type == 'int') :
+                    expression_parts.append(token_atual.value) 
+                    # res = token_atual.value
+                elif token_atual.value in [SOMA,SUB,MULT,DIV]:
+                    expression_parts.append(token_atual.value) 
+                    token_atual = self.tokenizer.select_next()
+                    if token_atual.value in [SOMA,SUB]:
+                        raise "string com entrada invalida"
+                    expression_parts.append(token_atual.value) 
+                    
+                    # res+= token_atual.value
                 # elif token_atual.value == SUB:
                 #     expression_parts.append(token_atual.value) 
                 #     token_atual = self.tokenizer.select_next()
                 #     if token_atual.value in [SOMA,SUB]:
                 #         raise "string com entrada invalida"
-                #     res-= token_atual.value
-                # else:
-                #     raise "string com entrada invalida" 
+                #     expression_parts.append(token_atual.value) 
+                #     # res-= token_atual.value
+                else:
+                    raise "string com entrada invalida" 
                 # expression_parts.append(token_atual.value)           
             else:
                 raise "O valor do token não é um valor válido"
@@ -98,8 +102,8 @@ class Parser():
         aux = 0
 
         while len(expression_parts) != 1:
-            print(i)
-            print(expression_parts)
+            # print(i)
+            # print(expression_parts)
             if MULT in expression_parts or DIV in expression_parts:
                 if (expression_parts[i] == MULT):
                     aux = expression_parts[i-1]*expression_parts[i+1]
@@ -148,13 +152,13 @@ class Parser():
 def main():
 
     # Verifica se há argumentos suficientes
-    # if len(sys.argv) != 2:
-    #     print("Por favor, forneça uma string como argumento.")
-    #     return
+    if len(sys.argv) != 2:
+        print("Por favor, forneça uma string como argumento.")
+        return
 
-    # Obtém o argumento da linha de comando
-    # minha_string = sys.argv[1]
-    minha_string = '1 + 2 + 3 - 4 * 0'
+    #Obtém o argumento da linha de comando
+    minha_string = sys.argv[1]
+
     if minha_string[0] in symbols or minha_string[-1] in symbols:
         raise "Essa string é uma string invalida por não começar e/ou terminar com números"
 
@@ -165,3 +169,7 @@ def main():
             
 if __name__ == "__main__":
     main()
+
+
+
+"1/1   +  2 *  1 -3+4/2"
