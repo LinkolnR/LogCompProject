@@ -136,7 +136,7 @@ class Parser():
 
                 
 
-        res = expression_parts[0]
+        res = int(expression_parts[0])
 
                          
         return res
