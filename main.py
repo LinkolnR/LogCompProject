@@ -122,13 +122,13 @@ class Parser():
 def main():
 
     # Verifica se há argumentos suficientes
-    # if len(sys.argv) != 2:
-    #     print("Por favor, forneça uma string como argumento.")
-    #     return
+    if len(sys.argv) != 2:
+        print("Por favor, forneça uma string como argumento.")
+        return
 
     #Obtém o argumento da linha de comando
-    # minha_string = sys.argv[1]
-    minha_string = "12/3*3+2"
+    minha_string = sys.argv[1]
+
     
 
     if minha_string[0] in symbols or minha_string[-1] in symbols:
