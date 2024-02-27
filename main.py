@@ -69,8 +69,11 @@ class Parser():
 
     @staticmethod
     def parse_term():
-        res = Parser.tokenizer.next.value                            
+        if (Parser.tokenizer.next.type == 'int'):
+            res = Parser.tokenizer.next.value                            
         Parser.tokenizer.select_next()
+        if Parser.tokenizer.next.type == 'int':
+            raise Exception("string inválida")
         while Parser.tokenizer.next.type in [MULT, DIV]:
             if Parser.tokenizer.next.type == 'int':
                 return Parser.tokenizer.next.value
@@ -94,21 +97,25 @@ class Parser():
     @staticmethod   
     def parse_expression():
         res = Parser.parse_term()
-
         while Parser.tokenizer.next.value != END:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
                 if Parser.tokenizer.next.type == 'int':
                     res += Parser.parse_term()
+
                 else:
                     raise "tipo está errado"
             elif Parser.tokenizer.next.type == SUB:
                 Parser.tokenizer.select_next()
+
                 if Parser.tokenizer.next.type == 'int':
                     res -= Parser.parse_term()
+
                 else:
                     raise "tipo está errado"       
-            Parser.tokenizer.select_next()             
+            else:
+                Parser.tokenizer.select_next()            
+
         return res
         
     
@@ -128,7 +135,7 @@ def main():
 
     #Obtém o argumento da linha de comando
     minha_string = sys.argv[1]
-
+    # minha_string = "1 1"
     
 
     if minha_string[0] in symbols or minha_string[-1] in symbols:
