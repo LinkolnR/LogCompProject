@@ -88,10 +88,12 @@ class Parser():
                 Parser.tokenizer.select_next()
                 res += Parser.parse_term()
             elif Parser.tokenizer.next.type == SUB:
-                Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next() 
                 res -= Parser.parse_term()
             else:
                 res = Parser.parse_term()
+        if Parser.tokenizer.next.type != EOF:
+            raise "string está errada"
         return res
     
     @staticmethod   
@@ -148,7 +150,7 @@ def main():
 
     #Obtém o argumento da linha de comando
     minha_string = sys.argv[1]
-    # minha_string = "4/(1+1)*2"
+    # minha_string = "+--++3"
     
 
     if minha_string[0] in symbols or minha_string[-1] in symbols:
