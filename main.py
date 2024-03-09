@@ -10,7 +10,7 @@ PARD = ')'
 END = ''
 EOF = 'EOF'
 
-symbols = [SOMA, SUB, MULT, DIV]
+symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int']
 
 # Classes
 class Token():
@@ -83,29 +83,35 @@ class Parser():
     def parse_expression():
         res = Parser.parse_term()
         while Parser.tokenizer.next.type in [SOMA, SUB]:
-
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
                 res += Parser.parse_term()
             elif Parser.tokenizer.next.type == SUB:
-                Parser.tokenizer.select_next() 
+                Parser.tokenizer.select_next()
                 res -= Parser.parse_term()
-            else:
-                res = Parser.parse_term()
-        if Parser.tokenizer.next.type != EOF:
-            raise "string está errada"
+        
+        if Parser.tokenizer.next.type == 'int':
+            raise "Erro de sintaxe - números seguidos"
+            
         return res
     
     @staticmethod   
     def parse_term():
         res = Parser.parse_factor()
-        while Parser.tokenizer.next.type in [MULT, DIV]:
+
+        while Parser.tokenizer.next.type in [DIV,MULT]:
             if Parser.tokenizer.next.type == MULT:
                 Parser.tokenizer.select_next()
                 res *= Parser.parse_factor()
             elif Parser.tokenizer.next.type == DIV:
                 Parser.tokenizer.select_next()
                 res //= Parser.parse_factor()
+            elif Parser.tokenizer.next.type in symbols:
+                res = Parser.parse_factor()
+            else:
+                raise "Erro de sintaxe"
+
+
 
         return res
         
@@ -113,6 +119,7 @@ class Parser():
 
     @staticmethod
     def parse_factor():
+
         if Parser.tokenizer.next.type == 'int':
             res = Parser.tokenizer.next.value
             Parser.tokenizer.select_next()
@@ -121,18 +128,20 @@ class Parser():
             Parser.tokenizer.select_next()
             res = Parser.parse_expression()
             if Parser.tokenizer.next.type != PARD:
-                raise "string está errada"
+                raise "Erro de sintaxe"
             Parser.tokenizer.select_next()
             return res
         elif Parser.tokenizer.next.type in [SOMA, SUB]:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
-                return Parser.parse_factor()
+                res = +Parser.parse_factor()
             elif Parser.tokenizer.next.type == SUB:
                 Parser.tokenizer.select_next()
-                return -Parser.parse_factor()
+                res = -Parser.parse_factor()
+            return res
         else:
-            raise "string está errada"
+            raise "Erro de sintaxe"
+
     
     @staticmethod
     def run(code):
@@ -150,14 +159,19 @@ def main():
 
     #Obtém o argumento da linha de comando
     minha_string = sys.argv[1]
-    # minha_string = "+--++3"
+    # minha_string = "(2*2"
     
 
-    if minha_string[0] in symbols or minha_string[-1] in symbols:
-        raise "Essa string é uma string invalida por não começar e/ou terminar com números"
+    # if minha_string[0] in symbols or minha_string[-1] in symbols:
+    #     raise "Essa string é uma string invalida por não começar e/ou terminar com números"
 
     res = Parser.run(minha_string)
-    print(res)
+    # print(res)
+    if (Parser.tokenizer.next.type == "EOF"):
+            print(res)
+            return res
+    else:
+        raise "Erro de sintaxe - string inválida"
 
             
 if __name__ == "__main__":
