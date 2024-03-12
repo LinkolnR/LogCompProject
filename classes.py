@@ -201,7 +201,7 @@ class Parser():
         
         resultado = Parser.parse_expression()
         teste = resultado.evaluate()
-        print( Parser.tokenizer.next.type)
+        # print( Parser.tokenizer.next.type)
         return teste
     
 
