@@ -1,172 +1,27 @@
 # main.py
 import sys
-
-SUB  = 'MINUS'
-SOMA = 'PLUS'
-MULT = 'MULT'
-DIV  = 'DIV'
-PARE = '('
-PARD = ')'
-END = ''
-EOF = 'EOF'
-
-symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int']
-
-# Classes
-class Token():
-
-    type : str 
-    value : int
-
-    def __init__(self, type, value):
-        self.type = type
-        self.value = value
+from classes import *
 
 
-class Tokenizer():
-    def __init__(self, source):
-        self.source = source
-        self.position = 0
-        self.next = self.select_next()
-
-    # @staticmethod
-    def select_next(self):
-        # Criando o token de final da string
-        if self.position >= len(self.source):
-            self.next = Token("EOF", "")
-            return self.next
-        # Ignorando espaços
-        while self.source[self.position] == ' ':
-                    self.position +=1
-        aux = []
-        # Verificando se é um número
-        while self.source[self.position].isdigit():  
-            # enquanto for número adiciona no auxiliar para após transformar em um número
-            aux.append(self.source[self.position])
-            self.position +=1 
-            if self.position >= len(self.source):
-                break
-        # Se não for número é um símbolo
-        if aux == []:
-            if self.source[self.position] == '+':
-                self.next = Token('PLUS', SOMA)
-                self.position +=1
-            elif self.source[self.position] == '-':
-                self.next = Token('MINUS', SUB)
-                self.position +=1
-            elif self.source[self.position] == '*':
-                self.next = Token('MULT', MULT)
-                self.position +=1
-            elif self.source[self.position] == '/':
-                self.next = Token('DIV', DIV)
-                self.position +=1
-            elif self.source[self.position] == '(':
-                self.next = Token('(', PARE)
-                self.position +=1
-            elif self.source[self.position] == ')':
-                self.next = Token(')', PARD)
-                self.position +=1        
-        else:
-            num = int(''.join(aux))
-            self.next = Token('int',num)
-        return self.next 
-        
-
-
-class Parser():
-    def __init__(self):
-        Parser.tokenizer = None
-
-    tokenizer = None
-
-    @staticmethod
-    def parse_expression():
-        res = Parser.parse_term()
-        while Parser.tokenizer.next.type in [SOMA, SUB]:
-            if Parser.tokenizer.next.type == SOMA:
-                Parser.tokenizer.select_next()
-                res += Parser.parse_term()
-            elif Parser.tokenizer.next.type == SUB:
-                Parser.tokenizer.select_next()
-                res -= Parser.parse_term()
-        
-        if Parser.tokenizer.next.type == 'int':
-            raise "Erro de sintaxe - números seguidos"
-            
-        return res
-    
-    @staticmethod   
-    def parse_term():
-        res = Parser.parse_factor()
-
-        while Parser.tokenizer.next.type in [DIV,MULT]:
-            if Parser.tokenizer.next.type == MULT:
-                Parser.tokenizer.select_next()
-                res *= Parser.parse_factor()
-            elif Parser.tokenizer.next.type == DIV:
-                Parser.tokenizer.select_next()
-                res //= Parser.parse_factor()
-            elif Parser.tokenizer.next.type in symbols:
-                res = Parser.parse_factor()
-            else:
-                raise "Erro de sintaxe"
-
-
-
-        return res
-        
-    
-
-    @staticmethod
-    def parse_factor():
-
-        if Parser.tokenizer.next.type == 'int':
-            res = Parser.tokenizer.next.value
-            Parser.tokenizer.select_next()
-            return res
-        elif Parser.tokenizer.next.type == PARE:
-            Parser.tokenizer.select_next()
-            res = Parser.parse_expression()
-            if Parser.tokenizer.next.type != PARD:
-                raise "Erro de sintaxe"
-            Parser.tokenizer.select_next()
-            return res
-        elif Parser.tokenizer.next.type in [SOMA, SUB]:
-            if Parser.tokenizer.next.type == SOMA:
-                Parser.tokenizer.select_next()
-                res = +Parser.parse_factor()
-            elif Parser.tokenizer.next.type == SUB:
-                Parser.tokenizer.select_next()
-                res = -Parser.parse_factor()
-            return res
-        else:
-            raise "Erro de sintaxe"
-
-    
-    @staticmethod
-    def run(code):
-        tokenizador= Tokenizer(code)
-        Parser.tokenizer = tokenizador
-        resultado = Parser.parse_expression()
-        return resultado
-    
 def main():
-
-    # Verifica se há argumentos suficientes
-    if len(sys.argv) != 2:
-        print("Por favor, forneça uma string como argumento.")
-        return
-
-    #Obtém o argumento da linha de comando
-    minha_string = sys.argv[1]
-    # minha_string = "(2*2"
     
+    teste = False
 
-    # if minha_string[0] in symbols or minha_string[-1] in symbols:
-    #     raise "Essa string é uma string invalida por não começar e/ou terminar com números"
+    if not teste:
+        # Verifica se há argumentos suficientes
+        if len(sys.argv) != 2:
+            print("Por favor, forneça uma string como argumento.")
+            return
 
+        # #Obtém o argumento da linha de comando
+        arquivo = sys.argv[1]
+        # # Ler um arquivo com uma linha de   
+        with open(arquivo, 'r') as file:
+            minha_string = file.read()
+    else:
+        minha_string = "3+6/3   *  2 -+-  +  2*4/2 + 0/1 -((6+ ((4)))/(2))"
+        
     res = Parser.run(minha_string)
-    # print(res)
     if (Parser.tokenizer.next.type == "EOF"):
             print(res)
             return res
