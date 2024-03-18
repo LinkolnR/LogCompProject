@@ -8,6 +8,11 @@ PARE = '('
 PARD = ')'
 END = ''
 EOF = 'EOF'
+ASS = '='
+PRINT = 'print'
+QUEBRA = '\n'
+
+
 
 symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int']
 
@@ -61,7 +66,54 @@ class NoOp(Node):
     def __init__(self):
         pass
 
+class PrintNode(Node):
+    def __init__(self, value, children):
+        super().__init__(value, children)
 
+    def evaluate(self):
+        print(self.children[0].evaluate())
+
+class AssingNode(Node):
+    def __init__(self, value, children):
+        super().__init__(value, children)
+
+    def evaluate(self, symbol_table):
+        # popular a symbol table
+        left  = self.children[0]
+        right = self.children[1]
+
+        symbol_table.add(left,right.evaluate())
+
+class Identifier(Node):
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self, symbol_table):
+        return (self.value)
+
+class Block(Node):
+    def __init__(self, value, children):
+        super().__init__(value, children)
+
+    def evaluate(self):
+        for child in self.children:
+            child.evaluate()
+
+class SymbolTable():
+    def __init__(self):
+        self.table = {}
+
+    def set(self, key, value):
+        self.table[key] = value
+
+    def get(self, key):
+        return self.table[key]
+
+
+
+
+
+# Tokenizer
 
 class Token():
 
