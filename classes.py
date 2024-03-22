@@ -11,10 +11,16 @@ EOF = 'EOF'
 ASS = '='
 PRINT = 'print'
 QUEBRA = '\n'
+IDENTIFIER = 'identifier'
+ATRIBUICAO = 'atribuicao'
 
 
 
-symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int']
+symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=']
+symbols_tokens = ["+","-","*","/","=","(",")"]
+
+especial_words = ['print']
+
 
 # Classes
 from abc import ABCMeta
@@ -32,34 +38,34 @@ class BinOp (Node):
     def __init__(self, value, children):  
         super().__init__(value, children)
 
-    def evaluate(self):
+    def evaluate(self,symbol_table):
         left  = self.children[0]
         right = self.children[1]
         if self.value == SOMA:
-            return left.evaluate() + right.evaluate()
+            return left.evaluate(symbol_table) + right.evaluate(symbol_table)
         elif self.value == SUB:
-            return left.evaluate() - right.evaluate()
+            return left.evaluate(symbol_table) - right.evaluate(symbol_table)
         elif self.value == MULT:
-            return left.evaluate() * right.evaluate()
+            return left.evaluate(symbol_table) * right.evaluate(symbol_table)
         elif self.value == DIV:
-            return left.evaluate() // right.evaluate()
+            return left.evaluate(symbol_table) // right.evaluate(symbol_table)
 
 class UnOp (Node):  
     def __init__(self, value, children):
         super().__init__(value, children)
         
-    def evaluate(self):
+    def evaluate(self,symbol_table):
         child = self.children[0]
         if self.value == SOMA:
-            return +child.evaluate()
+            return +child.evaluate(symbol_table)
         elif self.value == SUB:
-            return -child.evaluate()
+            return -child.evaluate(symbol_table)
 
 class IntVal(Node):
     def __init__(self, value):
         self.value = value
 
-    def evaluate(self):
+    def evaluate(self,symbol_table):
         return self.value
 
 class NoOp(Node):
@@ -70,19 +76,19 @@ class PrintNode(Node):
     def __init__(self, value, children):
         super().__init__(value, children)
 
-    def evaluate(self):
-        print(self.children[0].evaluate())
+    def evaluate(self,symbol_table):
+        print(self.children[0].evaluate(symbol_table))
 
 class AssingNode(Node):
-    def __init__(self, value, children):
-        super().__init__(value, children)
+    def __init__(self, children):
+        super().__init__( children)
 
     def evaluate(self, symbol_table):
         # popular a symbol table
         left  = self.children[0]
         right = self.children[1]
 
-        symbol_table.add(left,right.evaluate())
+        symbol_table.add(left,right.evaluate(symbol_table))
 
 class Identifier(Node):
     def __init__(self, value):
@@ -92,12 +98,15 @@ class Identifier(Node):
         return (self.value)
 
 class Block(Node):
-    def __init__(self, value, children):
-        super().__init__(value, children)
+    def __init__(self, children):
+        super().__init__(value= None , children = children)
 
-    def evaluate(self):
+    def add_statement(self, statement: Node):
+        self.children.append(statement)
+
+    def evaluate(self,symbol_table):
         for child in self.children:
-            child.evaluate()
+            child.evaluate(symbol_table)
 
 class SymbolTable():
     def __init__(self):
@@ -108,10 +117,6 @@ class SymbolTable():
 
     def get(self, key):
         return self.table[key]
-
-
-
-
 
 # Tokenizer
 
@@ -139,20 +144,31 @@ class Tokenizer():
             return self.next
         # Ignorando espaços
         while self.source[self.position] == ' ':
+                    print('entrou')
                     if self.position == len(self.source)-1:
                         self.next = Token("EOF", "")
                         return self.next
                     self.position +=1
         aux = []
         # Verificando se é um núm
-        while self.source[self.position].isdigit():  
-            # enquanto for número adiciona no auxiliar para após transformar em um número
-            aux.append(self.source[self.position])
-            self.position +=1 
-            if self.position >= len(self.source):
-                break
-        # Se não for número é um símbolo
+        if self.source[self.position].isdigit():
+            while self.source[self.position].isdigit():  
+                # enquanto for número adiciona no auxiliar para após transformar em um número
+                aux.append(self.source[self.position])
+                self.position +=1 
+                if self.position >= len(self.source):
+                    break
+            num = int(''.join(aux))
+            self.next = Token('int',num)
+            return self.next 
+
+            
+
+
+        
+        
         if aux == []:
+            print(self.source[self.position])
             if self.source[self.position] == '+':
                 self.next = Token('PLUS', SOMA)
                 self.position +=1
@@ -170,17 +186,64 @@ class Tokenizer():
                 self.position +=1
             elif self.source[self.position] == ')':
                 self.next = Token(')', PARD)
-                self.position +=1        
-        else:
-            num = int(''.join(aux))
-            self.next = Token('int',num)
+                self.position +=1
+            elif self.source[self.position] == '\n':
+                self.next = Token('QUEBRA', QUEBRA)
+                self.position +=1
+            elif self.source[self.position] == '=':
+                self.next = Token(ATRIBUICAO,'=')
+            else:
+                
+                while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
+                    aux.append(self.source[self.position])
+                    self.position = self.position + 1
+                    if (self.position == (len(self.source))):
+                        self.position = self.position - 1
+                        break
+                print(aux)
+                self.next = Token('identifier', ''.join(aux))
+                return self.next
+
+            
+        print(self.next.type, self.next.value)
         return self.next 
         
 class Parser():
     def __init__(self):
         Parser.tokenizer = None
+        Parser.block = None
 
     tokenizer = None
+
+    @staticmethod
+    def parse_block(): 
+        while (Parser().tokenizer.next.type != "EOF"):
+            statement = Parser().parse_statement()
+            Block.add_statement(statement)
+        Parser.tokenizer.selectNext()
+        return Block
+
+    @staticmethod
+    def parse_assignment():
+        if Parser.tokenizer.next.type == IDENTIFIER:
+            identifier = Identifier(Parser.tokenizer.next.value)
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type == ATRIBUICAO:
+                Parser.tokenizer.select_next()
+                expression = Parser.parse_expression()
+                assign_node = AssingNode([identifier, expression])
+                return assign_node
+        elif Parser.tokenizer.next.type == PRINT:
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type == PARE:
+                Parser.tokenizer.select_next()
+            expression = Parser.parse_expression()
+            if Parser.tokenizer.next.type != PARD:
+                raise "Erro de sintaxe"
+            return PrintNode(PRINT, [expression])
+        elif Parser.tokenizer.next.type == QUEBRA:
+            Parser.tokenizer.select_next()
+            return NoOp()
 
     @staticmethod
     def parse_expression():
@@ -232,6 +295,10 @@ class Parser():
                 raise "Erro de sintaxe"
             Parser.tokenizer.select_next()
             return node
+        elif Parser.tokenizer.next.type == IDENTIFIER:
+            identifier = Identifier(Parser.tokenizer.next.value)
+            Parser.tokenizer.select_next()
+            return identifier
         elif Parser.tokenizer.next.type in [SOMA, SUB]:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
@@ -250,9 +317,9 @@ class Parser():
         code_filter = pre_pros.filter(code)
         tokenizador= Tokenizer(code_filter)
         Parser.tokenizer = tokenizador
-        
+        Parser.block = Block([])
         resultado = Parser.parse_expression()
-        teste = resultado.evaluate()
+        teste = resultado.evaluate(symbol_table = SymbolTable())
         # print( Parser.tokenizer.next.type)
         return teste
     

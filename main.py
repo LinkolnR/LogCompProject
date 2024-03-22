@@ -26,7 +26,7 @@ def main():
             print(res)
             return res
     else:
-        raise "Erro de sintaxe - string inválida"
+        raise "Erro de sintaxe - Não acabou com EOF"
 
             
 if __name__ == "__main__":
