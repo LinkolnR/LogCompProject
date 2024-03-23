@@ -19,11 +19,11 @@ def main():
         with open(arquivo, 'r') as file:
             minha_string = file.read()
     else:
-        minha_string = "3+6/3   *  2 -+-  +  2*4/2 + 0/1 -((6+ ((4)))/(2))"
+        minha_string = "x = 15 + 12 \n y = 16\n z = x + y\n print(z)"
         
     res = Parser.run(minha_string)
     if (Parser.tokenizer.next.type == "EOF"):
-            print(res)
+            # print(res)
             return res
     else:
         raise "Erro de sintaxe - Não acabou com EOF"

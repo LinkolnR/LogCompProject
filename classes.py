@@ -71,6 +71,9 @@ class IntVal(Node):
 class NoOp(Node):
     def __init__(self):
         pass
+    
+    def evaluate(self,symbol_table):
+        pass
 
 class PrintNode(Node):
     def __init__(self, value, children):
@@ -81,21 +84,21 @@ class PrintNode(Node):
 
 class AssingNode(Node):
     def __init__(self, children):
-        super().__init__( children)
+        super().__init__( value= None ,children = children)
 
     def evaluate(self, symbol_table):
         # popular a symbol table
         left  = self.children[0]
         right = self.children[1]
 
-        symbol_table.add(left,right.evaluate(symbol_table))
+        symbol_table.set(left,right.evaluate(symbol_table))
 
 class Identifier(Node):
     def __init__(self, value):
         self.value = value
 
     def evaluate(self, symbol_table):
-        return (self.value)
+        return (symbol_table.get(self.value))
 
 class Block(Node):
     def __init__(self, children):
@@ -113,7 +116,8 @@ class SymbolTable():
         self.table = {}
 
     def set(self, key, value):
-        self.table[key] = value
+
+        self.table[key.value] = value
 
     def get(self, key):
         return self.table[key]
@@ -138,13 +142,13 @@ class Tokenizer():
 
     # @staticmethod
     def select_next(self):
+
         # Criando o token de final da string
         if self.position >= len(self.source):
             self.next = Token("EOF", "")
             return self.next
         # Ignorando espaços
         while self.source[self.position] == ' ':
-                    print('entrou')
                     if self.position == len(self.source)-1:
                         self.next = Token("EOF", "")
                         return self.next
@@ -166,9 +170,7 @@ class Tokenizer():
 
 
         
-        
         if aux == []:
-            print(self.source[self.position])
             if self.source[self.position] == '+':
                 self.next = Token('PLUS', SOMA)
                 self.position +=1
@@ -192,6 +194,7 @@ class Tokenizer():
                 self.position +=1
             elif self.source[self.position] == '=':
                 self.next = Token(ATRIBUICAO,'=')
+                self.position +=1
             else:
                 
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
@@ -200,12 +203,14 @@ class Tokenizer():
                     if (self.position == (len(self.source))):
                         self.position = self.position - 1
                         break
-                print(aux)
+                palavra = ''.join(aux)
+                if palavra in especial_words:
+                    self.next = Token(palavra, palavra)
+                    return self.next
                 self.next = Token('identifier', ''.join(aux))
                 return self.next
 
             
-        print(self.next.type, self.next.value)
         return self.next 
         
 class Parser():
@@ -217,11 +222,11 @@ class Parser():
 
     @staticmethod
     def parse_block(): 
-        while (Parser().tokenizer.next.type != "EOF"):
-            statement = Parser().parse_statement()
-            Block.add_statement(statement)
-        Parser.tokenizer.selectNext()
-        return Block
+        while (Parser.tokenizer.next.type != "EOF"):
+            statement = Parser.parse_assignment()
+            Parser.block.add_statement(statement)
+        Parser.tokenizer.select_next()
+        return Parser.block
 
     @staticmethod
     def parse_assignment():
@@ -239,9 +244,10 @@ class Parser():
                 Parser.tokenizer.select_next()
             expression = Parser.parse_expression()
             if Parser.tokenizer.next.type != PARD:
-                raise "Erro de sintaxe"
+                raise "Erro de sintaxe - falta o parenteses de fechada"
+            Parser.tokenizer.select_next()
             return PrintNode(PRINT, [expression])
-        elif Parser.tokenizer.next.type == QUEBRA:
+        elif Parser.tokenizer.next.type == 'QUEBRA':
             Parser.tokenizer.select_next()
             return NoOp()
 
@@ -318,9 +324,9 @@ class Parser():
         tokenizador= Tokenizer(code_filter)
         Parser.tokenizer = tokenizador
         Parser.block = Block([])
-        resultado = Parser.parse_expression()
-        teste = resultado.evaluate(symbol_table = SymbolTable())
-        # print( Parser.tokenizer.next.type)
+        resultado = Parser.parse_block()
+        # teste = resultado.evaluate(symbol_table = SymbolTable())
+        teste = Parser.block.evaluate(symbol_table = SymbolTable())
         return teste
     
 
