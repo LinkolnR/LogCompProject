@@ -198,7 +198,7 @@ class Tokenizer():
             else:
                 
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
-                    aux.append(self.source[self.position])
+                    aux.append(self.source[self.position].lower())
                     self.position = self.position + 1
                     if (self.position == (len(self.source))):
                         self.position = self.position - 1
@@ -335,6 +335,15 @@ class Pre_pro():
         pass
 
     def filter(self, source):
-        return source.split('--')[0]
+        lista = source.split('\n')
+        # print (lista)
+        # print(len(lista))
+        for i in range(0,len(lista)-1):
+            # print(i)
+            if '--' in lista[i]:
+                lista[i] = lista[i].split('--')[0]
+        completo = '\n'.join(lista)
+        # print(completo);
+        return completo
     
 
