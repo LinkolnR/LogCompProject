@@ -252,6 +252,8 @@ class Parser():
         elif Parser.tokenizer.next.type == 'QUEBRA':
             Parser.tokenizer.select_next()
             return NoOp()
+        else:
+            raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
 
     @staticmethod
     def parse_expression():
