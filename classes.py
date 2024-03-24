@@ -198,7 +198,7 @@ class Tokenizer():
             else:
                 
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
-                    aux.append(self.source[self.position].lower())
+                    aux.append(self.source[self.position])
                     self.position = self.position + 1
                     if (self.position == (len(self.source))):
                         self.position = self.position - 1
@@ -238,6 +238,8 @@ class Parser():
                 expression = Parser.parse_expression()
                 assign_node = AssingNode([identifier, expression])
                 return assign_node
+            else:
+                raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
         elif Parser.tokenizer.next.type == PRINT:
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == PARE:
