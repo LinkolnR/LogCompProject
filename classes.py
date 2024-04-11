@@ -229,7 +229,6 @@ class Tokenizer():
                 self.next = Token('(', PARE)
                 self.position +=1
             elif self.source[self.position] == ')':
-                print('ENIERTIJDFSNISD')
                 self.next = Token(')', PARD)
                 self.position +=1
             elif self.source[self.position] == '\n':
@@ -293,14 +292,10 @@ class Parser():
             else:
                 raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
         elif Parser.tokenizer.next.type == PRINT:
-            print(Parser.tokenizer.next.type, ' entrando aqui')
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == PARE:
-                print("entrou aqui")
                 Parser.tokenizer.select_next()
-                print(Parser.tokenizer.next.type)
             expression = Parser.parse_bool_expression()
-            print(Parser.tokenizer.next.type)
             if Parser.tokenizer.next.type != PARD:
                 raise "Erro de sintaxe - falta o parenteses de fechada"
             Parser.tokenizer.select_next()
@@ -332,32 +327,35 @@ class Parser():
         
         elif Parser.tokenizer.next.type == 'if':
             Parser.tokenizer.select_next()
-            node = Parser.parse_bool_expression()
+            condicional = Parser.parse_bool_expression()
             # Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type != 'then':
                 raise "Erro de sintaxe - falta o then"
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type != 'QUEBRA':
                 raise "Erro de sintaxe - falta a quebra de linha"
+            if_block = Block(children=[])
+            while Parser.tokenizer.next.type not in ['end','else']:
+                node = Parser.parse_statement()
+                if_block.children.append(node)
             Parser.tokenizer.select_next()
-            block1 = Parser.parse_statement()
             if Parser.tokenizer.next.type == 'else':
                 Parser.tokenizer.select_next()
-                block2 = Parser.parse_statement()
-                if Parser.tokenizer.next.type != 'end':
-                    raise "Erro de sintaxe - falta o end"
+                else_block = Block(children=[])
+                while Parser.tokenizer.next.type != 'end':
+                    node = Parser.parse_statement()
+                    else_block.children.append(node)
                 Parser.tokenizer.select_next()
-                return IfNode('if', [node, block1, block2])
+                return IfNode('if', [condicional, if_block, else_block])
             if Parser.tokenizer.next.type != 'QUEBRA':
                 raise "Erro de sintaxe - falta a quebra de linha"
             Parser.tokenizer.select_next()
-            if Parser.tokenizer.next.type != 'end':
-                raise "Erro de sintaxe - falta o end"
-            Parser.tokenizer.select_next()
-            return IfNode('if', [node, block1])
+            # if Parser.tokenizer.next.type != 'end':
+            #     raise "Erro de sintaxe - falta o end"
+            # Parser.tokenizer.select_next()
+            return IfNode('if', [condicional, if_block])
         else:
             raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
-
     @staticmethod
     def parse_bool_expression():
         node1 = Parser.parse_bool_term()
@@ -450,10 +448,8 @@ class Parser():
             Parser.tokenizer.select_next()
             return node
         elif Parser.tokenizer.next.type == IDENTIFIER:
-            print(Parser.tokenizer.next.value)
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
-            print(Parser.tokenizer.next.value)
             return identifier
         elif Parser.tokenizer.next.type in [SOMA, SUB]:
             if Parser.tokenizer.next.type == SOMA:
@@ -483,7 +479,6 @@ class Parser():
         Parser.tokenizer = tokenizador
         Parser.block = Block([])
         resultado = Parser.parse_block()
-        # teste = resultado.evaluate(symbol_table = SymbolTable())
         teste = Parser.block.evaluate(symbol_table = SymbolTable())
         return teste
     
@@ -494,14 +489,10 @@ class Pre_pro():
 
     def filter(self, source):
         lista = source.split('\n')
-        # print (lista)
-        # print(len(lista))
         for i in range(0,len(lista)-1):
-            # print(i)
             if '--' in lista[i]:
                 lista[i] = lista[i].split('--')[0]
         completo = '\n'.join(lista)
-        # print(completo);
         return completo
     
 
