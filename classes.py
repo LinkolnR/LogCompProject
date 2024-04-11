@@ -16,10 +16,10 @@ ATRIBUICAO = 'atribuicao'
 
 
 
-symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=']
-symbols_tokens = ["+","-","*","/","=","(",")"]
+symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=','==','>','<']
+# symbols_tokens = ["+","-","*","/","=","(",")"]
 
-especial_words = ['print']
+especial_words = ['print','while','do','end','if','else','then','or','and','read']
 
 
 # Classes
@@ -49,6 +49,17 @@ class BinOp (Node):
             return left.evaluate(symbol_table) * right.evaluate(symbol_table)
         elif self.value == DIV:
             return left.evaluate(symbol_table) // right.evaluate(symbol_table)
+        elif self.value == '==':
+            return left.evaluate(symbol_table) == right.evaluate(symbol_table)
+        elif self.value == '>':
+            return left.evaluate(symbol_table) > right.evaluate(symbol_table)
+        elif self.value == '<':
+            return left.evaluate(symbol_table) < right.evaluate(symbol_table)
+        elif self.value == 'or':
+            return left.evaluate(symbol_table) or right.evaluate(symbol_table)
+        elif self.value == 'and':
+            return left.evaluate(symbol_table) and right.evaluate(symbol_table)
+        
 
 class UnOp (Node):  
     def __init__(self, value, children):
@@ -122,6 +133,37 @@ class SymbolTable():
     def get(self, key):
         return self.table[key]
 
+
+
+
+class WhileNode(Node):
+    def __init__(self, value, children):
+        super().__init__(value, children)
+
+    def evaluate(self,symbol_table):
+        while self.children[0].evaluate(symbol_table):
+            self.children[1].evaluate(symbol_table)
+
+class IfNode(Node):
+    def __init__(self, value, children):
+        super().__init__(value, children)
+
+    def evaluate(self,symbol_table):
+        if self.children[0].evaluate(symbol_table):
+            self.children[1].evaluate(symbol_table)
+        elif len(self.children) == 3:
+            self.children[2].evaluate(symbol_table)
+
+class ReadNode(Node):
+    def __init__(self):
+        pass
+
+    def evaluate(self,symbol_table):
+        return int(input())
+
+
+
+
 # Tokenizer
 
 class Token():
@@ -187,16 +229,26 @@ class Tokenizer():
                 self.next = Token('(', PARE)
                 self.position +=1
             elif self.source[self.position] == ')':
+                print('ENIERTIJDFSNISD')
                 self.next = Token(')', PARD)
                 self.position +=1
             elif self.source[self.position] == '\n':
                 self.next = Token('QUEBRA', QUEBRA)
                 self.position +=1
             elif self.source[self.position] == '=':
-                self.next = Token(ATRIBUICAO,'=')
+                self.position +=1
+                if self.source[self.position] == '=':
+                    self.next = Token('==', '==')
+                    self.position +=1
+                else:    
+                    self.next = Token(ATRIBUICAO,'=')
+            elif self.source[self.position] == '>':
+                self.next = Token('>', '>')
+                self.position +=1
+            elif self.source[self.position] == '<':
+                self.next = Token('<', '<')
                 self.position +=1
             else:
-                
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
@@ -223,28 +275,32 @@ class Parser():
     @staticmethod
     def parse_block(): 
         while (Parser.tokenizer.next.type != "EOF"):
-            statement = Parser.parse_assignment()
+            statement = Parser.parse_statement()
             Parser.block.add_statement(statement)
         Parser.tokenizer.select_next()
         return Parser.block
 
     @staticmethod
-    def parse_assignment():
+    def parse_statement():
         if Parser.tokenizer.next.type == IDENTIFIER:
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == ATRIBUICAO:
                 Parser.tokenizer.select_next()
-                expression = Parser.parse_expression()
+                expression = Parser.parse_bool_expression()
                 assign_node = AssingNode([identifier, expression])
                 return assign_node
             else:
                 raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
         elif Parser.tokenizer.next.type == PRINT:
+            print(Parser.tokenizer.next.type, ' entrando aqui')
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == PARE:
+                print("entrou aqui")
                 Parser.tokenizer.select_next()
-            expression = Parser.parse_expression()
+                print(Parser.tokenizer.next.type)
+            expression = Parser.parse_bool_expression()
+            print(Parser.tokenizer.next.type)
             if Parser.tokenizer.next.type != PARD:
                 raise "Erro de sintaxe - falta o parenteses de fechada"
             Parser.tokenizer.select_next()
@@ -252,8 +308,99 @@ class Parser():
         elif Parser.tokenizer.next.type == 'QUEBRA':
             Parser.tokenizer.select_next()
             return NoOp()
+        elif Parser.tokenizer.next.type == 'while':
+            Parser.tokenizer.select_next()
+            condicional = Parser.parse_bool_expression()
+            if Parser.tokenizer.next.type != 'do':
+                raise "Erro de sintaxe - falta o do"
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type != 'QUEBRA':
+                raise "Erro de sintaxe - falta a quebra de linha"
+            while_block = Block(children=[])
+            while Parser.tokenizer.next.type != 'end':
+                node = Parser.parse_statement()
+                while_block.children.append(node)
+            Parser.tokenizer.select_next()
+            # if Parser.tokenizer.next.type != 'QUEBRA':
+            #     raise "Erro de sintaxe - falta a quebra de linha"
+            # Parser.tokenizer.select_next()
+            # if Parser.tokenizer.next.type != 'end':
+            #     raise "Erro de sintaxe - falta o end"
+            # Parser.tokenizer.select_next()
+
+            return WhileNode('while', [condicional, while_block])
+        
+        elif Parser.tokenizer.next.type == 'if':
+            Parser.tokenizer.select_next()
+            node = Parser.parse_bool_expression()
+            # Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type != 'then':
+                raise "Erro de sintaxe - falta o then"
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type != 'QUEBRA':
+                raise "Erro de sintaxe - falta a quebra de linha"
+            Parser.tokenizer.select_next()
+            block1 = Parser.parse_statement()
+            if Parser.tokenizer.next.type == 'else':
+                Parser.tokenizer.select_next()
+                block2 = Parser.parse_statement()
+                if Parser.tokenizer.next.type != 'end':
+                    raise "Erro de sintaxe - falta o end"
+                Parser.tokenizer.select_next()
+                return IfNode('if', [node, block1, block2])
+            if Parser.tokenizer.next.type != 'QUEBRA':
+                raise "Erro de sintaxe - falta a quebra de linha"
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type != 'end':
+                raise "Erro de sintaxe - falta o end"
+            Parser.tokenizer.select_next()
+            return IfNode('if', [node, block1])
         else:
             raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
+
+    @staticmethod
+    def parse_bool_expression():
+        node1 = Parser.parse_bool_term()
+        while Parser.tokenizer.next.type in ['or']:
+            if Parser.tokenizer.next.type == 'or':
+                Parser.tokenizer.select_next()
+                node2 = Parser.parse_bool_term()
+                node1 = BinOp('or', [node1,node2])  
+        return node1
+
+    @staticmethod
+    def parse_bool_term():
+        node1 = Parser.parse_relational_expression()
+        while Parser.tokenizer.next.type in ['and']:
+            if Parser.tokenizer.next.type == 'and':
+                Parser.tokenizer.select_next()
+                node2 = Parser.parse_relational_expression()
+                node1 = BinOp('and', [node1,node2])  
+        return node1
+
+
+
+    @staticmethod
+    def parse_relational_expression():
+        node1 = Parser.parse_expression()
+        while Parser.tokenizer.next.type in ['==','<','>']:
+            if Parser.tokenizer.next.type == '==':
+                Parser.tokenizer.select_next()
+                node2 = Parser.parse_expression()
+                node1 = BinOp('==', [node1 ,node2])
+            elif Parser.tokenizer.next.type == '<':
+                Parser.tokenizer.select_next()
+                node2 = Parser.parse_expression()
+                node1 = BinOp('<',  [node1, node2])
+            elif Parser.tokenizer.next.type == '>':
+                Parser.tokenizer.select_next()
+                node2 = Parser.parse_expression()
+                node1 = BinOp('>',  [node1, node2])
+            elif Parser.tokenizer.next.type in symbols:
+                node1 = UnOp(Parser.tokenizer.next.type, [Parser.parse_factor()])
+            else:
+                raise "Erro de sintaxe"
+        return node1
 
     @staticmethod
     def parse_expression():
@@ -288,8 +435,6 @@ class Parser():
                 raise "Erro de sintaxe"
         return node1
         
-    
-
     @staticmethod
     def parse_factor():
 
@@ -299,15 +444,16 @@ class Parser():
             return inteiro
         elif Parser.tokenizer.next.type == PARE:
             Parser.tokenizer.select_next()
-
-            node = Parser.parse_expression()
+            node = Parser.parse_bool_expression()
             if Parser.tokenizer.next.type != PARD:  
                 raise "Erro de sintaxe"
             Parser.tokenizer.select_next()
             return node
         elif Parser.tokenizer.next.type == IDENTIFIER:
+            print(Parser.tokenizer.next.value)
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
+            print(Parser.tokenizer.next.value)
             return identifier
         elif Parser.tokenizer.next.type in [SOMA, SUB]:
             if Parser.tokenizer.next.type == SOMA:
@@ -317,6 +463,14 @@ class Parser():
                 Parser.tokenizer.select_next()
                 node = UnOp(SUB, [Parser.parse_factor()])
             return node
+        elif Parser.tokenizer.next.type in ['read']:
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type == PARE:
+                Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type != PARD:
+                raise "Erro de sintaxe"
+            Parser.tokenizer.select_next()
+            return ReadNode()
         else:
             raise "Erro de sintaxe"
 
