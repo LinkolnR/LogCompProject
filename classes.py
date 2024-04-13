@@ -188,7 +188,7 @@ class Tokenizer():
     def select_next(self):
 
         # Criando o token de final da string
-        if self.position >= len(self.source):
+        if self.position >= len(self.source)-1:
             self.next = Token("EOF", "")
             return self.next
         # Ignorando espaços
@@ -320,13 +320,6 @@ class Parser():
                 node = Parser.parse_statement()
                 while_block.children.append(node)
             Parser.tokenizer.select_next()
-            # if Parser.tokenizer.next.type != 'QUEBRA':
-            #     raise "Erro de sintaxe - falta a quebra de linha"
-            # Parser.tokenizer.select_next()
-            # if Parser.tokenizer.next.type != 'end':
-            #     raise "Erro de sintaxe - falta o end"
-            # Parser.tokenizer.select_next()
-
             return WhileNode('while', [condicional, while_block])
         
         elif Parser.tokenizer.next.type == 'if':
@@ -344,7 +337,6 @@ class Parser():
             while Parser.tokenizer.next.type not in ['end','else']:
                 node = Parser.parse_statement()
                 if_block.children.append(node)
-                Parser.tokenizer.select_next()         
 
             if Parser.tokenizer.next.type == 'else':
                 Parser.tokenizer.select_next()
@@ -357,9 +349,8 @@ class Parser():
             elif Parser.tokenizer.next.type != 'end':
                 raise "Erro de sintaxe - falta o end de fechamento do if"
             Parser.tokenizer.select_next()
-            # if Parser.tokenizer.next.type != 'end':
-            #     raise "Erro de sintaxe - falta o end"
-            # Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type not in ['QUEBRA','EOF']:
+                raise "Erro de sintaxe - não pode ter statement após o end do if"
             return IfNode('if', [condicional, if_block])
         else:
             raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
@@ -458,7 +449,7 @@ class Parser():
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
             return identifier
-        elif Parser.tokenizer.next.type in [SOMA, SUB]:
+        elif Parser.tokenizer.next.type in [SOMA, SUB,'not']:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
                 node = UnOp(SOMA, [Parser.parse_factor()])
