@@ -250,10 +250,6 @@ class Tokenizer():
                 self.next = Token('<', '<')
                 self.position +=1
             else:
-                print(' teste ' , self.source[self.position])
-                snduiasb  = [self.source[self.position]]
-                print(snduiasb)
-                print( self.source[self.position] == ' ')
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
@@ -262,9 +258,7 @@ class Tokenizer():
                         break
                 if aux == []:
                     raise "Erro de sintaxe - não é um token válido"
-                print(aux)
                 palavra = ''.join(aux)
-                print(palavra)
                 if palavra in especial_words:
                     self.next = Token(palavra, palavra)
                     return self.next
@@ -348,19 +342,10 @@ class Parser():
             Parser.tokenizer.select_next()
 
             while Parser.tokenizer.next.type not in ['end','else']:
-                print('DEVERIA SER END OU QUEBRA 1 : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
-
                 node = Parser.parse_statement()
                 if_block.children.append(node)
-                Parser.tokenizer.select_next()
-                print('DEVERIA SER END OU QUEBRA 2 : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
-            print('DEVERIA SER END OU QUEBRA : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
-            
-            # if Parser.tokenizer.next.type != 'QUEBRA':
-            #     raise "Erro de sintaxe - falta a quebra de linha"
-            print('PASSOU PELA QUEBRA')
-            # Parser.tokenizer.select_next()
-            print('DEVERIA SER ELSE OU QUEBRA : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
+                Parser.tokenizer.select_next()         
+
             if Parser.tokenizer.next.type == 'else':
                 Parser.tokenizer.select_next()
                 else_block = Block(children=[])
