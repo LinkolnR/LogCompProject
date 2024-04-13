@@ -188,7 +188,7 @@ class Tokenizer():
     def select_next(self):
 
         # Criando o token de final da string
-        if self.position >= len(self.source)-1:
+        if self.position >= len(self.source):
             self.next = Token("EOF", "")
             return self.next
         # Ignorando espaços
