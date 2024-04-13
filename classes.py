@@ -19,7 +19,7 @@ ATRIBUICAO = 'atribuicao'
 symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=','==','>','<']
 # symbols_tokens = ["+","-","*","/","=","(",")"]
 
-especial_words = ['print','while','do','end','if','else','then','or','and','read']
+especial_words = ['print','while','do','end','if','else','then','or','and','read','not']
 
 
 # Classes
@@ -71,6 +71,8 @@ class UnOp (Node):
             return +child.evaluate(symbol_table)
         elif self.value == SUB:
             return -child.evaluate(symbol_table)
+        elif self.value == 'not':
+            return not child.evaluate(symbol_table)
 
 class IntVal(Node):
     def __init__(self, value):
@@ -190,7 +192,7 @@ class Tokenizer():
             self.next = Token("EOF", "")
             return self.next
         # Ignorando espaços
-        while self.source[self.position] == ' ':
+        while self.source[self.position] == ' ' or self.source[self.position] == '\t':
                     if self.position == len(self.source)-1:
                         self.next = Token("EOF", "")
                         return self.next
@@ -248,13 +250,21 @@ class Tokenizer():
                 self.next = Token('<', '<')
                 self.position +=1
             else:
+                print(' teste ' , self.source[self.position])
+                snduiasb  = [self.source[self.position]]
+                print(snduiasb)
+                print( self.source[self.position] == ' ')
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
                     if (self.position == (len(self.source))):
                         self.position = self.position - 1
                         break
+                if aux == []:
+                    raise "Erro de sintaxe - não é um token válido"
+                print(aux)
                 palavra = ''.join(aux)
+                print(palavra)
                 if palavra in especial_words:
                     self.next = Token(palavra, palavra)
                     return self.next
@@ -335,10 +345,22 @@ class Parser():
             if Parser.tokenizer.next.type != 'QUEBRA':
                 raise "Erro de sintaxe - falta a quebra de linha"
             if_block = Block(children=[])
+            Parser.tokenizer.select_next()
+
             while Parser.tokenizer.next.type not in ['end','else']:
+                print('DEVERIA SER END OU QUEBRA 1 : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
+
                 node = Parser.parse_statement()
                 if_block.children.append(node)
-            Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                print('DEVERIA SER END OU QUEBRA 2 : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
+            print('DEVERIA SER END OU QUEBRA : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
+            
+            # if Parser.tokenizer.next.type != 'QUEBRA':
+            #     raise "Erro de sintaxe - falta a quebra de linha"
+            print('PASSOU PELA QUEBRA')
+            # Parser.tokenizer.select_next()
+            print('DEVERIA SER ELSE OU QUEBRA : ' , Parser.tokenizer.next.type, Parser.tokenizer.next.value)
             if Parser.tokenizer.next.type == 'else':
                 Parser.tokenizer.select_next()
                 else_block = Block(children=[])
@@ -347,8 +369,8 @@ class Parser():
                     else_block.children.append(node)
                 Parser.tokenizer.select_next()
                 return IfNode('if', [condicional, if_block, else_block])
-            if Parser.tokenizer.next.type != 'QUEBRA':
-                raise "Erro de sintaxe - falta a quebra de linha"
+            elif Parser.tokenizer.next.type != 'end':
+                raise "Erro de sintaxe - falta o end de fechamento do if"
             Parser.tokenizer.select_next()
             # if Parser.tokenizer.next.type != 'end':
             #     raise "Erro de sintaxe - falta o end"
@@ -458,6 +480,9 @@ class Parser():
             elif Parser.tokenizer.next.type == SUB:
                 Parser.tokenizer.select_next()
                 node = UnOp(SUB, [Parser.parse_factor()])
+            elif Parser.tokenizer.next.type == 'not':
+                Parser.tokenizer.select_next()
+                node = UnOp('not', [Parser.parse_factor()])
             return node
         elif Parser.tokenizer.next.type in ['read']:
             Parser.tokenizer.select_next()
