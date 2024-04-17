@@ -42,23 +42,26 @@ class BinOp (Node):
         left  = self.children[0]
         right = self.children[1]
         if self.value == SOMA:
-            return left.evaluate(symbol_table) + right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] + right.evaluate(symbol_table)[0],'int')
         elif self.value == SUB:
-            return left.evaluate(symbol_table) - right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] - right.evaluate(symbol_table)[0],'int')
         elif self.value == MULT:
-            return left.evaluate(symbol_table) * right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] * right.evaluate(symbol_table)[0],'int')
         elif self.value == DIV:
-            return left.evaluate(symbol_table) // right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] // right.evaluate(symbol_table)[0],'int')
         elif self.value == '==':
-            return left.evaluate(symbol_table) == right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] == right.evaluate(symbol_table)[0],'bool')
         elif self.value == '>':
-            return left.evaluate(symbol_table) > right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] > right.evaluate(symbol_table)[0],'bool')
         elif self.value == '<':
-            return left.evaluate(symbol_table) < right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] < right.evaluate(symbol_table)[0],'bool')
         elif self.value == 'or':
-            return left.evaluate(symbol_table) or right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] or right.evaluate(symbol_table)[0],'int')
         elif self.value == 'and':
-            return left.evaluate(symbol_table) and right.evaluate(symbol_table)
+            return (left.evaluate(symbol_table)[0] and right.evaluate(symbol_table)[0],'int')
+        elif self.value == '..':
+            return (left.evaluate(symbol_table)[0] + right.evaluate(symbol_table)[0],'concat')
+        
         
 
 class UnOp (Node):  
@@ -68,18 +71,18 @@ class UnOp (Node):
     def evaluate(self,symbol_table):
         child = self.children[0]
         if self.value == SOMA:
-            return +child.evaluate(symbol_table)
+            return (+child.evaluate(symbol_table)[0], 'int')
         elif self.value == SUB:
-            return -child.evaluate(symbol_table)
+            return (-child.evaluate(symbol_table)[0], 'int')
         elif self.value == 'not':
-            return not child.evaluate(symbol_table)
+            return (not child.evaluate(symbol_table)[0], 'int')
 
 class IntVal(Node):
     def __init__(self, value):
         self.value = value
 
     def evaluate(self,symbol_table):
-        return self.value
+        return (self.value, 'int')
 
 class NoOp(Node):
     def __init__(self):
@@ -93,7 +96,7 @@ class PrintNode(Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        print(self.children[0].evaluate(symbol_table))
+        print(self.children[0].evaluate(symbol_table)[0])
 
 class AssingNode(Node):
     def __init__(self, children):
@@ -104,14 +107,16 @@ class AssingNode(Node):
         left  = self.children[0]
         right = self.children[1]
 
+        symbol_table.create(left)
         symbol_table.set(left,right.evaluate(symbol_table))
+
 
 class Identifier(Node):
     def __init__(self, value):
         self.value = value
 
     def evaluate(self, symbol_table):
-        return (symbol_table.get(self.value))
+        return (symbol_table.get(self.value)[0], 'identifier')
 
 class Block(Node):
     def __init__(self, children):
@@ -129,8 +134,14 @@ class SymbolTable():
         self.table = {}
 
     def set(self, key, value):
-
-        self.table[key.value] = value
+        if key.value not in self.table.keys():
+            raise "Erro de semântica - variável não declarada"
+        else:
+            self.table[key.value] = (value[0],value[1])
+    
+    def create(self,key):
+        if key.value not in self.table.keys():
+            self.table[key.value] = None
 
     def get(self, key):
         return self.table[key]
@@ -143,7 +154,7 @@ class WhileNode(Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        while self.children[0].evaluate(symbol_table):
+        while self.children[0].evaluate(symbol_table)[0]:
             self.children[1].evaluate(symbol_table)
 
 class IfNode(Node):
@@ -151,7 +162,7 @@ class IfNode(Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        if self.children[0].evaluate(symbol_table):
+        if self.children[0].evaluate(symbol_table)[0]:
             self.children[1].evaluate(symbol_table)
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
@@ -161,7 +172,8 @@ class ReadNode(Node):
         pass
 
     def evaluate(self,symbol_table):
-        return int(input())
+        input_ = int(input())
+        return (input_, 'int')
 
 
 
