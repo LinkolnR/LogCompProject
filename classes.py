@@ -19,7 +19,7 @@ ATRIBUICAO = 'atribuicao'
 symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=','==','>','<']
 # symbols_tokens = ["+","-","*","/","=","(",")"]
 
-especial_words = ['print','while','do','end','if','else','then','or','and','read','not']
+especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local']
 
 
 # Classes
@@ -84,6 +84,14 @@ class IntVal(Node):
     def evaluate(self,symbol_table):
         return (self.value, 'int')
 
+class StrVal(Node):
+    def __init__(self, value):
+        self.value = value
+
+    def evaluate(self,symbol_table):
+        return (self.value, 'str')
+
+
 class NoOp(Node):
     def __init__(self):
         pass
@@ -107,7 +115,7 @@ class AssingNode(Node):
         left  = self.children[0]
         right = self.children[1]
 
-        symbol_table.create(left)
+        # symbol_table.create(left)
         symbol_table.set(left,right.evaluate(symbol_table))
 
 
@@ -134,10 +142,7 @@ class SymbolTable():
         self.table = {}
 
     def set(self, key, value):
-        if key.value not in self.table.keys():
-            raise "Erro de semântica - variável não declarada"
-        else:
-            self.table[key.value] = (value[0],value[1])
+        self.table[key.value] = (value[0],value[1])
     
     def create(self,key):
         if key.value not in self.table.keys():
@@ -166,6 +171,17 @@ class IfNode(Node):
             self.children[1].evaluate(symbol_table)
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
+
+
+class VarDecNode(Node):
+    def __init__(self, value, children):
+        super().__init__(value, children)
+
+    def evaluate(self,symbol_table):
+        if len(self.children) == 1:
+            symbol_table.create(self.children[0])
+        else:
+            symbol_table.set(self.children[0],self.children[1].evaluate(symbol_table))
 
 class ReadNode(Node):
     def __init__(self):
@@ -261,6 +277,16 @@ class Tokenizer():
             elif self.source[self.position] == '<':
                 self.next = Token('<', '<')
                 self.position +=1
+            elif self.source[self.position] == '..':
+                self.next = Token('concat', '..')
+                self.position +=1
+            elif self.source[self.position] == '"':
+                self.position +=1
+                while self.source[self.position] != '"':
+                    aux.append(self.source[self.position])
+                    self.position +=1
+                self.position +=1
+                self.next = Token('string', ''.join(aux))
             else:
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
                     aux.append(self.source[self.position])
