@@ -50,6 +50,20 @@ class BinOp (Node):
         elif self.value == DIV:
             return (left.evaluate(symbol_table)[0] // right.evaluate(symbol_table)[0],'int')
         elif self.value == '==':
+            left_string = left.evaluate(symbol_table)[0]
+            right_string = right.evaluate(symbol_table)[0]
+            if type(left_string) == bool:
+                if left_string:
+                    left_string = 1
+                else:
+                    left_string = 0        
+            if type(right_string) == bool:
+                if right_string:
+                    right_string = 1
+                else:
+                    right_string = 0
+            if type(left_string) != type(right_string):
+                    raise "não é possivel comparar tipos diferentes"
             return (left.evaluate(symbol_table)[0] == right.evaluate(symbol_table)[0],'bool')
         elif self.value == '>':
             return (left.evaluate(symbol_table)[0] > right.evaluate(symbol_table)[0],'bool')
@@ -62,12 +76,12 @@ class BinOp (Node):
         elif self.value == '..':
             left_string = left.evaluate(symbol_table)[0]
             right_string = right.evaluate(symbol_table)[0]
-            if type(left_string) != str:
+            if type(left_string) == bool:
                 if left_string:
                     left_string = 1
                 else:
                     left_string = 0        
-            if type(right_string) != str:
+            if type(right_string) == bool:
                 if right_string:
                     right_string = 1
                 else:
@@ -165,6 +179,8 @@ class SymbolTable():
     def create(self,key):
         if key.value not in self.table.keys():
             self.table[key.value] = None
+        else:
+            raise "Variável já declarada"
 
     def get(self, key):
         return self.table[key]
