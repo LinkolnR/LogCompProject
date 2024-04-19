@@ -60,7 +60,19 @@ class BinOp (Node):
         elif self.value == 'and':
             return (left.evaluate(symbol_table)[0] and right.evaluate(symbol_table)[0],'int')
         elif self.value == '..':
-            return (str(left.evaluate(symbol_table)[0]) + str(right.evaluate(symbol_table)[0]),'concat')
+            left_string = left.evaluate(symbol_table)[0]
+            right_string = right.evaluate(symbol_table)[0]
+            if type(left_string) != str:
+                if left_string:
+                    left_string = 1
+                else:
+                    left_string = 0        
+            if type(right_string) != str:
+                if right_string:
+                    right_string = 1
+                else:
+                    right_string = 0
+            return (str(left_string) + str(right_string),'concat')
         
         
 
@@ -104,7 +116,13 @@ class PrintNode(Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        print(self.children[0].evaluate(symbol_table)[0])
+        string = self.children[0].evaluate(symbol_table)[0]
+        if type(string) == bool:
+            if string:
+                string = 1
+            else:
+                string = 0
+        print(string)
 
 class AssingNode(Node):
     def __init__(self, children):
