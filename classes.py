@@ -159,6 +159,8 @@ class SymbolTable():
     def set(self, key, value):
         if key.value in self.table.keys():
             self.table[key.value] = (value[0],value[1])
+        else:
+            raise "Variável não declarada"
     
     def create(self,key):
         if key.value not in self.table.keys():
