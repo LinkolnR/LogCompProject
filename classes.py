@@ -114,7 +114,6 @@ class AssingNode(Node):
         # popular a symbol table
         left  = self.children[0]
         right = self.children[1]
-
         # symbol_table.create(left)
         symbol_table.set(left,right.evaluate(symbol_table))
 
@@ -174,8 +173,8 @@ class IfNode(Node):
 
 
 class VarDecNode(Node):
-    def __init__(self, value, children):
-        super().__init__(value, children)
+    def __init__(self,children):
+        super().__init__(value = None, children = children)
 
     def evaluate(self,symbol_table):
         if len(self.children) == 1:
@@ -241,7 +240,7 @@ class Tokenizer():
             
 
 
-        
+        # print('entrou aqui no tokenizer com o simbolo: ', self.source[self.position] )
         if aux == []:
             if self.source[self.position] == '+':
                 self.next = Token('PLUS', SOMA)
@@ -277,16 +276,22 @@ class Tokenizer():
             elif self.source[self.position] == '<':
                 self.next = Token('<', '<')
                 self.position +=1
-            elif self.source[self.position] == '..':
-                self.next = Token('concat', '..')
+            elif self.source[self.position] == '.':
                 self.position +=1
+                if self.source[self.position] == '.':
+                    self.next = Token('..', '..')
+                    self.position +=1
+                else:
+                    raise "concatenacao incompleta"
             elif self.source[self.position] == '"':
                 self.position +=1
                 while self.source[self.position] != '"':
                     aux.append(self.source[self.position])
                     self.position +=1
-                self.position +=1
-                self.next = Token('string', ''.join(aux))
+                self.position +=1   
+                string = ''.join(aux)
+                print(string)
+                self.next = Token('string',string )
             else:
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
                     aux.append(self.source[self.position])
@@ -333,6 +338,21 @@ class Parser():
                 return assign_node
             else:
                 raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
+        elif Parser.tokenizer.next.type == 'local':
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type == IDENTIFIER:
+                identifier = Identifier(Parser.tokenizer.next.value)
+                Parser.tokenizer.select_next()
+                if Parser.tokenizer.next.type == ATRIBUICAO:
+                    Parser.tokenizer.select_next()
+                    expression = Parser.parse_bool_expression()
+                    assign_node = AssingNode([identifier, expression])
+                    return assign_node
+                elif Parser.tokenizer.next.type == 'QUEBRA':
+                    assign_node = VarDecNode([identifier])
+                    return assign_node
+                else:
+                    raise 'SINTAXE NAO ACEITA'
         elif Parser.tokenizer.next.type == PRINT:
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == PARE:
@@ -439,7 +459,7 @@ class Parser():
     @staticmethod
     def parse_expression():
         node1 = Parser.parse_term()
-        while Parser.tokenizer.next.type in [SOMA, SUB]:
+        while Parser.tokenizer.next.type in [SOMA, SUB,'..']:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
                 node2 = Parser.parse_term()
@@ -448,6 +468,10 @@ class Parser():
                 Parser.tokenizer.select_next()
                 node2 = Parser.parse_term()
                 node1 = BinOp(SUB, [node1,node2])
+            elif Parser.tokenizer.next.type == '..':
+                Parser.tokenizer.select_next()
+                node2 = Parser.parse_term()
+                node1 = BinOp('..', [node1,node2])
         
         return node1
     
@@ -506,6 +530,10 @@ class Parser():
                 raise "Erro de sintaxe"
             Parser.tokenizer.select_next()
             return ReadNode()
+        elif Parser.tokenizer.next.type == 'string':
+            string = StrVal(Parser.tokenizer.next.value)
+            Parser.tokenizer.select_next()
+            return string
         else:
             raise "Erro de sintaxe"
 
