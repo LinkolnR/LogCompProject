@@ -129,10 +129,8 @@ class AssingNode(Node):
         super().__init__( value= None ,children = children)
 
     def evaluate(self, symbol_table):
-        # popular a symbol table
         left  = self.children[0]
         right = self.children[1]
-        # symbol_table.create(left)
         symbol_table.set(left,right.evaluate(symbol_table))
 
 
@@ -159,7 +157,8 @@ class SymbolTable():
         self.table = {}
 
     def set(self, key, value):
-        self.table[key.value] = (value[0],value[1])
+        if key.value in self.table.keys():
+            self.table[key.value] = (value[0],value[1])
     
     def create(self,key):
         if key.value not in self.table.keys():
@@ -198,6 +197,7 @@ class VarDecNode(Node):
         if len(self.children) == 1:
             symbol_table.create(self.children[0])
         else:
+            symbol_table.create(self.children[0])
             symbol_table.set(self.children[0],self.children[1].evaluate(symbol_table))
 
 class ReadNode(Node):
@@ -361,7 +361,7 @@ class Parser():
                 if Parser.tokenizer.next.type == ATRIBUICAO:
                     Parser.tokenizer.select_next()
                     expression = Parser.parse_bool_expression()
-                    assign_node = AssingNode([identifier, expression])
+                    assign_node = VarDecNode([identifier, expression])
                     return assign_node
                 elif Parser.tokenizer.next.type == 'QUEBRA':
                     assign_node = VarDecNode([identifier])
