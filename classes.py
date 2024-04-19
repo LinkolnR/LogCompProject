@@ -60,7 +60,7 @@ class BinOp (Node):
         elif self.value == 'and':
             return (left.evaluate(symbol_table)[0] and right.evaluate(symbol_table)[0],'int')
         elif self.value == '..':
-            return (left.evaluate(symbol_table)[0] + right.evaluate(symbol_table)[0],'concat')
+            return (str(left.evaluate(symbol_table)[0]) + str(right.evaluate(symbol_table)[0]),'concat')
         
         
 
@@ -238,9 +238,7 @@ class Tokenizer():
             return self.next 
 
             
-
-
-        # print('entrou aqui no tokenizer com o simbolo: ', self.source[self.position] )
+    
         if aux == []:
             if self.source[self.position] == '+':
                 self.next = Token('PLUS', SOMA)
@@ -290,7 +288,6 @@ class Tokenizer():
                     self.position +=1
                 self.position +=1   
                 string = ''.join(aux)
-                print(string)
                 self.next = Token('string',string )
             else:
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
