@@ -340,9 +340,9 @@ class IfNode(Node):
         if self.children[0].evaluate(symbol_table)[0]:
             self.writeNasm.body += f"IF_BLOCK{self.id}:\n"
             self.writeNasm.body += f"CMP EAX, False\n"
-            self.writeNasm.body += f"JUMP ELSE_BLOCK{self.id}\n"
+            self.writeNasm.body += f"JMP ELSE_BLOCK{self.id}\n"
             self.children[1].evaluate(symbol_table)
-            self.writeNasm.body += f"JUMP EXIT_IF_BLOCK{self.id}\n"
+            self.writeNasm.body += f"JMP EXIT_IF_BLOCK{self.id}\n"
             self.writeNasm.body += f"ELSE_BLOCK{self.id}\n"
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
