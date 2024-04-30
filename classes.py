@@ -343,10 +343,10 @@ class IfNode(Node):
             self.writeNasm.body += f"JMP ELSE_BLOCK{self.id}\n"
             self.children[1].evaluate(symbol_table)
             self.writeNasm.body += f"JMP EXIT_IF_BLOCK{self.id}\n"
-            self.writeNasm.body += f"ELSE_BLOCK{self.id}\n"
+            self.writeNasm.body += f"ELSE_BLOCK{self.id}:\n"
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
-        self.writeNasm.body += f"EXIT_IF_BLOCK{self.id}\n"
+        self.writeNasm.body += f"EXIT_IF_BLOCK{self.id}:\n"
 
 class VarDecNode(Node):
     def __init__(self,children):
