@@ -134,11 +134,10 @@ class BinOp (Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        left  = self.children[0].evaluate(symbol_table)[0]
-        self.writeNasm.body += "PUSH EAX\n"
         right = self.children[1].evaluate(symbol_table)[0]
-        self.writeNasm.body += "MOV EBX, EAX\n"
-        self.writeNasm.body += "POP EAX\n"
+        self.writeNasm.body += "PUSH EAX\n"
+        left  = self.children[0].evaluate(symbol_table)[0]
+        self.writeNasm.body += "POP EBX \n"
         
         if self.value == SOMA:
             self.writeNasm.body += "ADD EAX, EBX\n"
@@ -147,10 +146,10 @@ class BinOp (Node):
             self.writeNasm.body += "SUB EAX, EBX\n"
             return (left - right,'int')
         elif self.value == MULT:
-            self.writeNasm.body += "IMUL EAX, EBX\n"
+            self.writeNasm.body += "IMUL EBX\n"
             return (left * right,'int')
         elif self.value == DIV:
-            self.writeNasm.body += "IDIV EAX, EBX\n"
+            self.writeNasm.body += "IDIV EBX\n"
             return (left // right,'int')
         elif self.value == '==':
             # left_string = left
@@ -222,6 +221,8 @@ class IntVal(Node):
         super().__init__(value, [])
 
     def evaluate(self,symbol_table):
+        print('entrou aqui 1')
+        print(f"MOV EAX, {self.value}\n")
         self.writeNasm.body += f"MOV EAX, {self.value}\n"
         
         return (self.value, 'int')
@@ -269,6 +270,7 @@ class AssingNode(Node):
         symbol_table.set(left,right.evaluate(symbol_table))
         position = symbol_table.get(left.value)[2]
         self.writeNasm.body += f"MOV [EBP-{position}], EAX\n"
+        
 
 class Identifier(Node):
     def __init__(self, value):
@@ -293,18 +295,21 @@ class Block(Node):
 class SymbolTable():
     def __init__(self):
         self.table = {}
-        self.desloc = 0
+        self.desloc = 4
+
 
     def set(self, key, value):
-        self.desloc += 4
         if key.value in self.table.keys():
-            self.table[key.value] = (value[0],value[1], self.desloc)
+            desloc = self.table[key.value][2]
+            self.table[key.value] = (value[0],value[1], desloc)
+            
         else:
             raise "Variável não declarada"
     
     def create(self,key):
         if key.value not in self.table.keys():
-            self.table[key.value] = None
+            self.table[key.value] = (None, None, self.desloc)
+            self.desloc += 4
         else:
             raise "Variável já declarada"
 
@@ -317,12 +322,13 @@ class WhileNode(Node):
 
     def evaluate(self,symbol_table):
         self.writeNasm.body += f"LOOP_{self.id}:\n"
-        while self.children[0].evaluate(symbol_table)[0]:
-            self.writeNasm.body += f"CMP EAX, False\n"
-            self.writeNasm.body += f"JE EXIT_{self.id}\n"
-            self.children[1].evaluate(symbol_table)
-            self.writeNasm.body += f"JMP LOOP_{self.id}\n"
-            self.writeNasm.body += f"EXIT_{self.id}:\n"
+        self.children[0].evaluate(symbol_table)
+        #while self.children[0].evaluate(symbol_table)[0]:
+        self.writeNasm.body += f"CMP EAX, False\n"
+        self.writeNasm.body += f"JE EXIT_{self.id}\n"
+        self.children[1].evaluate(symbol_table)
+        self.writeNasm.body += f"JMP LOOP_{self.id}\n"
+        self.writeNasm.body += f"EXIT_{self.id}:\n"
 
 
 
@@ -366,7 +372,6 @@ class ReadNode(Node):
         self.writeNasm.body += f"CALL scanf\n"
         self.writeNasm.body += f"ADD ESP, 8\n"
         self.writeNasm.body += f"MOV EAX, DWORD [scanint]\n"
-        self.writeNasm.body += f"MOV [EBP-8], EAX\n"
         return (input_, 'int')
 
 
