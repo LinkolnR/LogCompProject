@@ -15,6 +15,7 @@ def main():
 
         # #Obtém o argumento da linha de comando
         arquivo = sys.argv[1]
+        asm = arquivo.replace(".lua", ".asm")
         # # Ler um arquivo com uma linha de   
         with open(arquivo, 'r') as file:
             minha_string = file.read()
@@ -22,6 +23,9 @@ def main():
         minha_string = "x = 15 + 12 \n y = 16\n z = x + y\n print(z)"
         
     res = Parser.run(minha_string)
+    WriteNasm().write_header(asm)
+    WriteNasm().write_body(asm)
+    WriteNasm().write_footer(asm)
     if (Parser.tokenizer.next.type == "EOF"):
             # print(res)
             return res

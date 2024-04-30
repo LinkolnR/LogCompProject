@@ -23,12 +23,107 @@ especial_words = ['print','while','do','end','if','else','then','or','and','read
 
 
 # Classes
+class WriteNasm():
+    def __init__(self ): 
+        pass
+
+
+    header = """; constantes
+SYS_EXIT equ 1
+SYS_READ equ 3
+SYS_WRITE equ 4
+STDIN equ 0
+STDOUT equ 1
+True equ 1
+False equ 0
+
+segment .data
+formatin: db "%d", 0
+formatout: db "%d", 10, 0 ; newline, null terminator
+scanint: times 4 db 0 ; 32-bit integer = 4 bytes
+
+segment .bss ; variaveis
+res RESB 1
+extern fflush
+extern stdout
+
+section .text
+global main ; linux
+extern scanf ; linux
+extern printf ; linux
+
+; subrotinas if/while
+binop_je:
+    JE binop_true
+    JMP binop_false
+binop_jg:
+    JG binop_true
+    JMP binop_false
+binop_jl:
+    JL binop_true
+    JMP binop_false
+binop_false:
+    MOV EAX, False
+    JMP binop_exit
+binop_true:
+    MOV EAX, True
+binop_exit:
+    RET
+
+main:
+    PUSH EBP ; guarda o base pointer
+    MOV EBP, ESP ; estabelece um novo base pointer\n
+"""
+    
+    body = ""
+    
+    footer = """
+PUSH DWORD [stdout]
+CALL fflush
+ADD ESP, 4
+MOV ESP, EBP
+POP EBP
+MOV EAX, 1
+XOR EBX, EBX
+INT 0x80
+    """
+    
+
+    @staticmethod
+    def write_header(filename):
+        with open(filename, 'w') as file:
+            file.write(WriteNasm.header)
+    
+    @staticmethod
+    def write_body(filename):
+        with open(filename, 'a') as file:
+            file.write(WriteNasm.body)
+    
+    @staticmethod
+    def write_footer(filename):
+        with open(filename, 'a') as file:
+            file.write(WriteNasm.footer)
+
+    @staticmethod
+    def write_nasm():
+        WriteNasm.write_header()
+        WriteNasm.write_body()
+        WriteNasm.write_footer()
+
+
+
+
 from abc import ABCMeta
 
 class Node(metaclass=ABCMeta):
+        next_id = 0
         def __init__(self, value, children): 
             self.value = value
             self.children = children
+            self.writeNasm = WriteNasm
+            self.id = Node.next_id
+            Node.next_id+=1
+
 
         @abstractmethod
         def evaluate(self):
@@ -39,75 +134,96 @@ class BinOp (Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        left  = self.children[0]
-        right = self.children[1]
+        left  = self.children[0].evaluate(symbol_table)[0]
+        self.writeNasm.body += "PUSH EAX\n"
+        right = self.children[1].evaluate(symbol_table)[0]
+        self.writeNasm.body += "MOV EBX, EAX\n"
+        self.writeNasm.body += "POP EAX\n"
+        
         if self.value == SOMA:
-            return (left.evaluate(symbol_table)[0] + right.evaluate(symbol_table)[0],'int')
+            self.writeNasm.body += "ADD EAX, EBX\n"
+            return (left + right,'int')
         elif self.value == SUB:
-            return (left.evaluate(symbol_table)[0] - right.evaluate(symbol_table)[0],'int')
+            self.writeNasm.body += "SUB EAX, EBX\n"
+            return (left - right,'int')
         elif self.value == MULT:
-            return (left.evaluate(symbol_table)[0] * right.evaluate(symbol_table)[0],'int')
+            self.writeNasm.body += "IMUL EAX, EBX\n"
+            return (left * right,'int')
         elif self.value == DIV:
-            return (left.evaluate(symbol_table)[0] // right.evaluate(symbol_table)[0],'int')
+            self.writeNasm.body += "IDIV EAX, EBX\n"
+            return (left // right,'int')
         elif self.value == '==':
-            left_string = left.evaluate(symbol_table)[0]
-            right_string = right.evaluate(symbol_table)[0]
-            if type(left_string) == bool:
-                if left_string:
-                    left_string = 1
+            # left_string = left
+            # right_string = right
+            if type(left) == bool:
+                if left:
+                    left = 1
                 else:
-                    left_string = 0        
-            if type(right_string) == bool:
-                if right_string:
-                    right_string = 1
+                    left = 0        
+            if type(right) == bool:
+                if right:
+                    right = 1
                 else:
-                    right_string = 0
-            if type(left_string) != type(right_string):
+                    right = 0
+            print(left,right)
+            if type(left) != type(right):
                     raise "não é possivel comparar tipos diferentes"
-            return (left.evaluate(symbol_table)[0] == right.evaluate(symbol_table)[0],'bool')
+            self.writeNasm.body += "CMP EAX, EBX\n"
+            self.writeNasm.body += "CALL binop_je\n"
+            return (left == right,'bool')
         elif self.value == '>':
-            return (left.evaluate(symbol_table)[0] > right.evaluate(symbol_table)[0],'bool')
+            self.writeNasm.body += "CMP EAX, EBX\n"
+            self.writeNasm.body += "CALL binop_jg\n"
+            return (left > right,'bool')
         elif self.value == '<':
-            return (left.evaluate(symbol_table)[0] < right.evaluate(symbol_table)[0],'bool')
+            self.writeNasm.body += "CMP EAX, EBX\n"
+            self.writeNasm.body += "CALL binop_jl\n"
+            return (left < right,'bool')
         elif self.value == 'or':
-            return (left.evaluate(symbol_table)[0] or right.evaluate(symbol_table)[0],'int')
+            self.writeNasm.body += "OR EAX, EBX\n"
+            return (left or right,'int')
         elif self.value == 'and':
-            return (left.evaluate(symbol_table)[0] and right.evaluate(symbol_table)[0],'int')
+            self.writeNasm.body += "AND EAX, EBX\n"
+            return (left and right,'int')
         elif self.value == '..':
-            left_string = left.evaluate(symbol_table)[0]
-            right_string = right.evaluate(symbol_table)[0]
-            if type(left_string) == bool:
-                if left_string:
-                    left_string = 1
+            # left_string = left.evaluate(symbol_table)[0]
+            # right_string = right.evaluate(symbol_table)[0]
+            if type(left) == bool:
+                if left:
+                    left = 1
                 else:
-                    left_string = 0        
-            if type(right_string) == bool:
-                if right_string:
-                    right_string = 1
+                    left = 0        
+            if type(right) == bool:
+                if right:
+                    right = 1
                 else:
-                    right_string = 0
-            return (str(left_string) + str(right_string),'concat')
+                    right = 0
+            return (str(left) + str(right),'concat')
         
-        
-
 class UnOp (Node):  
     def __init__(self, value, children):
         super().__init__(value, children)
         
     def evaluate(self,symbol_table):
         child = self.children[0]
+        valor = child.evaluate(symbol_table)[0]
         if self.value == SOMA:
-            return (+child.evaluate(symbol_table)[0], 'int')
+            self.writeNasm.body += f"MOV EAX, {valor}\n"
+            return (+valor, 'int')
         elif self.value == SUB:
-            return (-child.evaluate(symbol_table)[0], 'int')
+            self.writeNasm.body += f"NEG EAX\n"
+            return (-valor, 'int')
         elif self.value == 'not':
-            return (not child.evaluate(symbol_table)[0], 'int')
+            self.writeNasm.body += f"MOV EAX, {not valor}\n"
+            return (not valor, 'int')
 
 class IntVal(Node):
     def __init__(self, value):
-        self.value = value
+        super().__init__(value, [])
 
     def evaluate(self,symbol_table):
+        self.writeNasm.body += f"MOV EAX, {self.value}\n"
+        
         return (self.value, 'int')
 
 class StrVal(Node):
@@ -116,7 +232,6 @@ class StrVal(Node):
 
     def evaluate(self,symbol_table):
         return (self.value, 'str')
-
 
 class NoOp(Node):
     def __init__(self):
@@ -136,6 +251,12 @@ class PrintNode(Node):
                 string = 1
             else:
                 string = 0
+        self.writeNasm.body += f"PUSH EAX\n"
+        self.writeNasm.body += f"PUSH formatout\n"
+        self.writeNasm.body += f"CALL printf\n"
+        self.writeNasm.body += f"ADD ESP, 8\n"
+
+        
         print(string)
 
 class AssingNode(Node):
@@ -146,13 +267,16 @@ class AssingNode(Node):
         left  = self.children[0]
         right = self.children[1]
         symbol_table.set(left,right.evaluate(symbol_table))
-
+        position = symbol_table.get(left.value)[2]
+        self.writeNasm.body += f"MOV [EBP-{position}], EAX\n"
 
 class Identifier(Node):
     def __init__(self, value):
-        self.value = value
+       super().__init__(value, [])
 
     def evaluate(self, symbol_table):
+        position = symbol_table.get(self.value)[2]
+        self.writeNasm.body += f"MOV EAX, [EBP-{position}]\n"
         return (symbol_table.get(self.value)[0], 'identifier')
 
 class Block(Node):
@@ -169,10 +293,12 @@ class Block(Node):
 class SymbolTable():
     def __init__(self):
         self.table = {}
+        self.desloc = 0
 
     def set(self, key, value):
+        self.desloc += 4
         if key.value in self.table.keys():
-            self.table[key.value] = (value[0],value[1])
+            self.table[key.value] = (value[0],value[1], self.desloc)
         else:
             raise "Variável não declarada"
     
@@ -185,16 +311,20 @@ class SymbolTable():
     def get(self, key):
         return self.table[key]
 
-
-
-
 class WhileNode(Node):
     def __init__(self, value, children):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
+        self.writeNasm.body += f"LOOP_{self.id}:\n"
         while self.children[0].evaluate(symbol_table)[0]:
+            self.writeNasm.body += f"CMP EAX, False\n"
+            self.writeNasm.body += f"JE EXIT_{self.id}\n"
             self.children[1].evaluate(symbol_table)
+            self.writeNasm.body += f"JMP LOOP_{self.id}\n"
+            self.writeNasm.body += f"EXIT_{self.id}:\n"
+
+
 
 class IfNode(Node):
     def __init__(self, value, children):
@@ -202,10 +332,15 @@ class IfNode(Node):
 
     def evaluate(self,symbol_table):
         if self.children[0].evaluate(symbol_table)[0]:
+            self.writeNasm.body += f"IF_BLOCK{self.id}:\n"
+            self.writeNasm.body += f"CMP EAX, False\n"
+            self.writeNasm.body += f"JUMP ELSE_BLOCK{self.id}\n"
             self.children[1].evaluate(symbol_table)
+            self.writeNasm.body += f"JUMP EXIT_IF_BLOCK{self.id}\n"
+            self.writeNasm.body += f"ELSE_BLOCK{self.id}\n"
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
-
+        self.writeNasm.body += f"EXIT_IF_BLOCK{self.id}\n"
 
 class VarDecNode(Node):
     def __init__(self,children):
@@ -214,18 +349,25 @@ class VarDecNode(Node):
     def evaluate(self,symbol_table):
         if len(self.children) == 1:
             symbol_table.create(self.children[0])
+            self.writeNasm.body += f"PUSH DWORD 0\n"
         else:
             symbol_table.create(self.children[0])
             symbol_table.set(self.children[0],self.children[1].evaluate(symbol_table))
 
 class ReadNode(Node):
     def __init__(self):
-        pass
+        super().__init__(None, None)
+
 
     def evaluate(self,symbol_table):
         input_ = int(input())
+        self.writeNasm.body += f"PUSH scanint\n"
+        self.writeNasm.body += f"PUSH formatin\n"
+        self.writeNasm.body += f"CALL scanf\n"
+        self.writeNasm.body += f"ADD ESP, 8\n"
+        self.writeNasm.body += f"MOV EAX, DWORD [scanint]\n"
+        self.writeNasm.body += f"MOV [EBP-8], EAX\n"
         return (input_, 'int')
-
 
 
 
