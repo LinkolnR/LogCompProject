@@ -14,13 +14,10 @@ QUEBRA = '\n'
 IDENTIFIER = 'identifier'
 ATRIBUICAO = 'atribuicao'
 
-
-
 symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=','==','>','<']
 # symbols_tokens = ["+","-","*","/","=","(",")"]
 
-especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local']
-
+especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local','function','return',',']
 
 # Classes
 from abc import ABCMeta
@@ -88,8 +85,6 @@ class BinOp (Node):
                     right_string = 0
             return (str(left_string) + str(right_string),'concat')
         
-        
-
 class UnOp (Node):  
     def __init__(self, value, children):
         super().__init__(value, children)
@@ -116,7 +111,6 @@ class StrVal(Node):
 
     def evaluate(self,symbol_table):
         return (self.value, 'str')
-
 
 class NoOp(Node):
     def __init__(self):
@@ -147,7 +141,6 @@ class AssingNode(Node):
         right = self.children[1]
         symbol_table.set(left,right.evaluate(symbol_table))
 
-
 class Identifier(Node):
     def __init__(self, value):
         self.value = value
@@ -164,7 +157,14 @@ class Block(Node):
 
     def evaluate(self,symbol_table):
         for child in self.children:
-            child.evaluate(symbol_table)
+            if child.value != QUEBRA:
+                res = child.evaluate(symbol_table)
+            else:
+                child.evaluate(symbol_table)
+
+            if (child.value == "return"):
+                return child.Evaluate(symbol_table)
+        return res
 
 class SymbolTable():
     def __init__(self):
@@ -185,8 +185,23 @@ class SymbolTable():
     def get(self, key):
         return self.table[key]
 
-
-
+class FuncTable():
+    table = {}
+    @staticmethod
+    def set( key, value ):
+        if key.value in FuncTable.table.keys():
+            FuncTable.table[key.value] = value
+        else:
+            raise "Funcao não declarada"
+    @staticmethod
+    def create( key ):
+        if key.value not in FuncTable.table.keys():
+            FuncTable.table[key.value] = None
+        else:
+            raise "Funcao já declarada"
+    @staticmethod
+    def get( key ):
+        return FuncTable.table[key]
 
 class WhileNode(Node):
     def __init__(self, value, children):
@@ -205,7 +220,6 @@ class IfNode(Node):
             self.children[1].evaluate(symbol_table)
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
-
 
 class VarDecNode(Node):
     def __init__(self,children):
@@ -226,11 +240,42 @@ class ReadNode(Node):
         input_ = int(input())
         return (input_, 'int')
 
+class FunctionDec(Node):
+    def __init__(self, children):
+        super().__init__(value = None, children = children)
+
+    def evaluate(self,symbol_table):
+        FuncTable.create(self.children[0])
+        FuncTable.set(self.children[0],self)
+
+class FunctionCall(Node):
+    def __init__(self, value ,children):
+        super().__init__(value = value, children = children)
+
+    def evaluate(self,symbol_table):
+        table_local = SymbolTable()
+        func = FuncTable.get(self.value)
+        if len(func.children)-2 != len(self.children):
+            raise "Número de argumentos incorreto"    
+        args = func.children[1:-1]
+        for i in range(len(args)):
+            args[0].evaluate(table_local)
+            valor_arg = self.children[i].evaluate(symbol_table)
+            table_local.set(args[i].value,valor_arg)
+
+        block = func.children[-1]
+        return block.evaluate(table_local)
+
+class ReturnNode(Node):
+    def __init__(self, children):
+        super().__init__(value = None, children = children)
+
+    def evaluate(self,symbol_table):
+        return self.children[0].evaluate(symbol_table)
 
 
 
 # Tokenizer
-
 class Token():
 
     type : str 
@@ -239,7 +284,6 @@ class Token():
     def __init__(self, type, value):
         self.type = type
         self.value = value
-
 
 class Tokenizer():
     def __init__(self, source):
@@ -582,7 +626,6 @@ class Parser():
         teste = Parser.block.evaluate(symbol_table = SymbolTable())
         return teste
     
-
 class Pre_pro():
     def __init__(self):
         pass
