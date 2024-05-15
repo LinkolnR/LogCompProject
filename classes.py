@@ -413,6 +413,17 @@ class Parser():
                 expression = Parser.parse_bool_expression()
                 assign_node = AssingNode([identifier, expression])
                 return assign_node
+            elif Parser.tokenizer.next.type == PARE:
+                Parser.tokenizer.select_next()
+                args = []
+
+                while Parser.tokenizer.next.type != PARD:
+                    args.append(Parser.parse_bool_expression())
+                    if Parser.tokenizer.next.type == ',':
+                        Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                return FunctionCall(identifier,args)
+
             else:
                 raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
         elif Parser.tokenizer.next.type == 'local':
@@ -487,6 +498,35 @@ class Parser():
             if Parser.tokenizer.next.type not in ['QUEBRA','EOF']:
                 raise "Erro de sintaxe - não pode ter statement após o end do if"
             return IfNode('if', [condicional, if_block])
+        
+        elif Parser.tokenizer.next.type == 'function':
+            Parser.tokenizer.select_next()
+            if Parser.tokenizer.next.type == IDENTIFIER:
+                identifier = Identifier(Parser.tokenizer.next.value)
+                Parser.tokenizer.select_next()
+                if Parser.tokenizer.next.type == PARE:
+                    Parser.tokenizer.select_next()
+                args = []
+                while Parser.tokenizer.next.type != PARD:
+                    args.append(VarDecNode(Parser.tokenizer.next.value))
+                    Parser.tokenizer.select_next()
+                    if Parser.tokenizer.next.type == ',':
+                        Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                if Parser.tokenizer.next.type != 'QUEBRA':
+                    raise "Erro de sintaxe - falta a quebra de linha"
+                block = Block(children=[])
+                while Parser.tokenizer.next.type != 'end':
+                    node = Parser.parse_statement()
+                    block.children.append(node)
+                Parser.tokenizer.select_next()
+                return FunctionDec([identifier]+args+[block])
+            else:
+                raise "Faltou o nome da função"
+        elif Parser.tokenizer.next.type == 'return':
+            Parser.tokenizer.select_next()
+            expression = Parser.parse_bool_expression()
+            return expression
         else:
             raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
     @staticmethod
@@ -587,7 +627,18 @@ class Parser():
         elif Parser.tokenizer.next.type == IDENTIFIER:
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
-            return identifier
+            if Parser.tokenizer.next.type == PARE:
+                Parser.tokenizer.select_next()
+                args = []
+                while Parser.tokenizer.next.type != PARD:
+                    args.append(Parser.parse_bool_expression())
+                    Parser.tokenizer.select_next()
+                    if Parser.tokenizer.next.type == ',':
+                        Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                return FunctionCall(identifier,args)
+            else:    
+                return identifier
         elif Parser.tokenizer.next.type in [SOMA, SUB,'not']:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
