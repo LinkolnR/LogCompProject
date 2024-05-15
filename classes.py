@@ -17,7 +17,7 @@ ATRIBUICAO = 'atribuicao'
 symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=','==','>','<']
 # symbols_tokens = ["+","-","*","/","=","(",")"]
 
-especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local','function','return',',']
+especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local','function','return',","]
 
 # Classes
 from abc import ABCMeta
@@ -113,8 +113,8 @@ class StrVal(Node):
         return (self.value, 'str')
 
 class NoOp(Node):
-    def __init__(self):
-        pass
+    def __init__(self, value = None):
+        self.value = value
     
     def evaluate(self,symbol_table):
         pass
@@ -157,15 +157,10 @@ class Block(Node):
 
     def evaluate(self,symbol_table):
         for child in self.children:
-            if child.value != QUEBRA:
-                res = child.evaluate(symbol_table)
-            else:
-                child.evaluate(symbol_table)
-
-            if (child.value == "return"):
-                return child.Evaluate(symbol_table)
-        return res
-
+                if (child.value == "return"):
+                    return child.evaluate(symbol_table)
+                else:
+                    child.evaluate(symbol_table)
 class SymbolTable():
     def __init__(self):
         self.table = {}
@@ -254,6 +249,7 @@ class FunctionCall(Node):
 
     def evaluate(self,symbol_table):
         table_local = SymbolTable()
+        print('pegando o nome da funcao funcCall:  ',self.value)
         func = FuncTable.get(self.value)
         if len(func.children)-2 != len(self.children):
             raise "Número de argumentos incorreto"    
@@ -370,13 +366,14 @@ class Tokenizer():
                 string = ''.join(aux)
                 self.next = Token('string',string )
             else:
-                while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
+                while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" or self.source[self.position] == ","):
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
                     if (self.position == (len(self.source))):
                         self.position = self.position - 1
                         break
                 if aux == []:
+                    print(self.source[self.position])
                     raise "Erro de sintaxe - não é um token válido"
                 palavra = ''.join(aux)
                 if palavra in especial_words:
@@ -406,11 +403,16 @@ class Parser():
     @staticmethod
     def parse_statement():
         if Parser.tokenizer.next.type == IDENTIFIER:
+            print('\nwnidasnidnasidnsahjinsahjknhj\n')
+            print(Parser.tokenizer.next.type,Parser.tokenizer.next.value)
+
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == ATRIBUICAO:
+                print(Parser.tokenizer.next.type,Parser.tokenizer.next.value)
+
                 Parser.tokenizer.select_next()
-                expression = Parser.parse_bool_expression()
+                expression = Parser.parse_statement()
                 assign_node = AssingNode([identifier, expression])
                 return assign_node
             elif Parser.tokenizer.next.type == PARE:
@@ -420,9 +422,14 @@ class Parser():
                 while Parser.tokenizer.next.type != PARD:
                     args.append(Parser.parse_bool_expression())
                     if Parser.tokenizer.next.type == ',':
+                        print("aqui")
                         Parser.tokenizer.select_next()
                 Parser.tokenizer.select_next()
-                return FunctionCall(identifier,args)
+                    
+                print('saiu while')
+                print(Parser.tokenizer.next.type,Parser.tokenizer.next.value)
+
+                return FunctionCall(identifier.value,args)
 
             else:
                 raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
@@ -500,12 +507,18 @@ class Parser():
             return IfNode('if', [condicional, if_block])
         
         elif Parser.tokenizer.next.type == 'function':
+            print(Parser.tokenizer.next.value,Parser.tokenizer.next.type )
             Parser.tokenizer.select_next()
+            print(Parser.tokenizer.next.value,Parser.tokenizer.next.type )
+            
             if Parser.tokenizer.next.type == IDENTIFIER:
+                print("uasidbnsaui")
                 identifier = Identifier(Parser.tokenizer.next.value)
                 Parser.tokenizer.select_next()
                 if Parser.tokenizer.next.type == PARE:
                     Parser.tokenizer.select_next()
+                else:
+                    raise "faltando parenteses"
                 args = []
                 while Parser.tokenizer.next.type != PARD:
                     args.append(VarDecNode(Parser.tokenizer.next.value))
@@ -526,7 +539,7 @@ class Parser():
         elif Parser.tokenizer.next.type == 'return':
             Parser.tokenizer.select_next()
             expression = Parser.parse_bool_expression()
-            return expression
+            return ReturnNode([expression])
         else:
             raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
     @staticmethod
@@ -616,6 +629,7 @@ class Parser():
         if Parser.tokenizer.next.type == 'int':
             inteiro = IntVal(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
+
             return inteiro
         elif Parser.tokenizer.next.type == PARE:
             Parser.tokenizer.select_next()
@@ -636,7 +650,7 @@ class Parser():
                     if Parser.tokenizer.next.type == ',':
                         Parser.tokenizer.select_next()
                 Parser.tokenizer.select_next()
-                return FunctionCall(identifier,args)
+                return FunctionCall(identifier.value,args)
             else:    
                 return identifier
         elif Parser.tokenizer.next.type in [SOMA, SUB,'not']:
