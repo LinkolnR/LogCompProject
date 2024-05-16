@@ -139,7 +139,7 @@ class AssingNode(Node):
     def evaluate(self, symbol_table):
         left  = self.children[0]
         right = self.children[1]
-        symbol_table.set(left,right.evaluate(symbol_table))
+        symbol_table.set(left.value,right.evaluate(symbol_table))
 
 class Identifier(Node):
     def __init__(self, value):
@@ -157,6 +157,7 @@ class Block(Node):
 
     def evaluate(self,symbol_table):
         for child in self.children:
+                
                 if (child.value == "return"):
                     return child.evaluate(symbol_table)
                 else:
@@ -166,14 +167,15 @@ class SymbolTable():
         self.table = {}
 
     def set(self, key, value):
-        if key.value in self.table.keys():
-            self.table[key.value] = (value[0],value[1])
+
+        if key in self.table.keys():
+            self.table[key] = (value[0],value[1])
         else:
             raise "Variável não declarada"
     
     def create(self,key):
-        if key.value not in self.table.keys():
-            self.table[key.value] = None
+        if key not in self.table.keys():
+            self.table[key] = None
         else:
             raise "Variável já declarada"
 
@@ -222,10 +224,10 @@ class VarDecNode(Node):
 
     def evaluate(self,symbol_table):
         if len(self.children) == 1:
-            symbol_table.create(self.children[0])
+            symbol_table.create(self.children[0].value)
         else:
-            symbol_table.create(self.children[0])
-            symbol_table.set(self.children[0],self.children[1].evaluate(symbol_table))
+            symbol_table.create(self.children[0].value)
+            symbol_table.set(self.children[0].value,self.children[1].evaluate(symbol_table))
 
 class ReadNode(Node):
     def __init__(self):
@@ -241,6 +243,7 @@ class FunctionDec(Node):
 
     def evaluate(self,symbol_table):
         FuncTable.create(self.children[0])
+
         FuncTable.set(self.children[0],self)
 
 class FunctionCall(Node):
@@ -249,22 +252,29 @@ class FunctionCall(Node):
 
     def evaluate(self,symbol_table):
         table_local = SymbolTable()
-        print('pegando o nome da funcao funcCall:  ',self.value)
         func = FuncTable.get(self.value)
+
         if len(func.children)-2 != len(self.children):
             raise "Número de argumentos incorreto"    
         args = func.children[1:-1]
+
+
         for i in range(len(args)):
-            args[0].evaluate(table_local)
-            valor_arg = self.children[i].evaluate(symbol_table)
-            table_local.set(args[i].value,valor_arg)
+
+            argumento = args[i].children[0].value
+            valor_arg = self.children[i].children[0].evaluate(symbol_table)
+            table_local.create(argumento)
+
+            table_local.set(args[i].children[0].value,valor_arg)
 
         block = func.children[-1]
+
         return block.evaluate(table_local)
+
 
 class ReturnNode(Node):
     def __init__(self, children):
-        super().__init__(value = None, children = children)
+        super().__init__(value = 'return', children = children)
 
     def evaluate(self,symbol_table):
         return self.children[0].evaluate(symbol_table)
@@ -373,7 +383,6 @@ class Tokenizer():
                         self.position = self.position - 1
                         break
                 if aux == []:
-                    print(self.source[self.position])
                     raise "Erro de sintaxe - não é um token válido"
                 palavra = ''.join(aux)
                 if palavra in especial_words:
@@ -403,32 +412,22 @@ class Parser():
     @staticmethod
     def parse_statement():
         if Parser.tokenizer.next.type == IDENTIFIER:
-            print('\nwnidasnidnasidnsahjinsahjknhj\n')
-            print(Parser.tokenizer.next.type,Parser.tokenizer.next.value)
-
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type == ATRIBUICAO:
-                print(Parser.tokenizer.next.type,Parser.tokenizer.next.value)
-
                 Parser.tokenizer.select_next()
-                expression = Parser.parse_statement()
+                expression = Parser.parse_bool_expression()
                 assign_node = AssingNode([identifier, expression])
                 return assign_node
             elif Parser.tokenizer.next.type == PARE:
                 Parser.tokenizer.select_next()
                 args = []
-
                 while Parser.tokenizer.next.type != PARD:
-                    args.append(Parser.parse_bool_expression())
+
+                    args.append(VarDecNode([Parser.parse_bool_expression()]))
                     if Parser.tokenizer.next.type == ',':
-                        print("aqui")
                         Parser.tokenizer.select_next()
                 Parser.tokenizer.select_next()
-                    
-                print('saiu while')
-                print(Parser.tokenizer.next.type,Parser.tokenizer.next.value)
-
                 return FunctionCall(identifier.value,args)
 
             else:
@@ -507,12 +506,9 @@ class Parser():
             return IfNode('if', [condicional, if_block])
         
         elif Parser.tokenizer.next.type == 'function':
-            print(Parser.tokenizer.next.value,Parser.tokenizer.next.type )
             Parser.tokenizer.select_next()
-            print(Parser.tokenizer.next.value,Parser.tokenizer.next.type )
             
             if Parser.tokenizer.next.type == IDENTIFIER:
-                print("uasidbnsaui")
                 identifier = Identifier(Parser.tokenizer.next.value)
                 Parser.tokenizer.select_next()
                 if Parser.tokenizer.next.type == PARE:
@@ -521,7 +517,7 @@ class Parser():
                     raise "faltando parenteses"
                 args = []
                 while Parser.tokenizer.next.type != PARD:
-                    args.append(VarDecNode(Parser.tokenizer.next.value))
+                    args.append(VarDecNode([Identifier(Parser.tokenizer.next.value)]))
                     Parser.tokenizer.select_next()
                     if Parser.tokenizer.next.type == ',':
                         Parser.tokenizer.select_next()
@@ -625,11 +621,9 @@ class Parser():
         
     @staticmethod
     def parse_factor():
-
         if Parser.tokenizer.next.type == 'int':
             inteiro = IntVal(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
-
             return inteiro
         elif Parser.tokenizer.next.type == PARE:
             Parser.tokenizer.select_next()
@@ -645,8 +639,7 @@ class Parser():
                 Parser.tokenizer.select_next()
                 args = []
                 while Parser.tokenizer.next.type != PARD:
-                    args.append(Parser.parse_bool_expression())
-                    Parser.tokenizer.select_next()
+                    args.append(VarDecNode([Parser.parse_bool_expression()]))
                     if Parser.tokenizer.next.type == ',':
                         Parser.tokenizer.select_next()
                 Parser.tokenizer.select_next()
