@@ -162,6 +162,7 @@ class Block(Node):
                     return child.evaluate(symbol_table)
                 else:
                     child.evaluate(symbol_table)
+
 class SymbolTable():
     def __init__(self):
         self.table = {}
@@ -377,6 +378,8 @@ class Tokenizer():
                 self.next = Token('string',string )
             else:
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" or self.source[self.position] == ","):
+                    if self.source[self.position] == "," and len(aux) > 0:
+                        break
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
                     if (self.position == (len(self.source))):
