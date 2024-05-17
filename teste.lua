@@ -1,12 +1,14 @@
-function soma(x , y)
-    local a
-    a = x + y
-    print(a)
-    return a
+function fatorial(n)
+    print(n)
+    if n == 0 then
+        return 1
+    else
+        return n * fatorial(n - 1)
     end
+end
 local a
 local b
 a = 3
-b = soma(a, 4)
+b = fatorial(a)
 print(a)
 print(b)

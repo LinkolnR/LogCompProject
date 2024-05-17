@@ -38,6 +38,7 @@ class BinOp (Node):
     def evaluate(self,symbol_table):
         left  = self.children[0]
         right = self.children[1]
+        
         if self.value == SOMA:
             return (left.evaluate(symbol_table)[0] + right.evaluate(symbol_table)[0],'int')
         elif self.value == SUB:
@@ -47,6 +48,7 @@ class BinOp (Node):
         elif self.value == DIV:
             return (left.evaluate(symbol_table)[0] // right.evaluate(symbol_table)[0],'int')
         elif self.value == '==':
+
             left_string = left.evaluate(symbol_table)[0]
             right_string = right.evaluate(symbol_table)[0]
             if type(left_string) == bool:
@@ -155,13 +157,17 @@ class Block(Node):
     def add_statement(self, statement: Node):
         self.children.append(statement)
 
-    def evaluate(self,symbol_table):
+    def evaluate(self,symbol_table):    
+        print('blockoipasdkjnsajkndsajk')
+        print(self.children)
         for child in self.children:
-                
-                if (child.value == "return"):
-                    return child.evaluate(symbol_table)
-                else:
-                    child.evaluate(symbol_table)
+            if (child.value == "return"):
+                print('evaluate do return:')
+                auxiliar = child.evaluate(symbol_table)
+                print(auxiliar)
+                return auxiliar
+            child.evaluate(symbol_table)
+
 
 class SymbolTable():
     def __init__(self):
@@ -244,7 +250,6 @@ class FunctionDec(Node):
 
     def evaluate(self,symbol_table):
         FuncTable.create(self.children[0])
-
         FuncTable.set(self.children[0],self)
 
 class FunctionCall(Node):
@@ -254,23 +259,21 @@ class FunctionCall(Node):
     def evaluate(self,symbol_table):
         table_local = SymbolTable()
         func = FuncTable.get(self.value)
-
-        if len(func.children)-2 != len(self.children):
-            raise "Número de argumentos incorreto"    
+        print(func.children[2].children)
         args = func.children[1:-1]
-
-
+        if len(args) != len(self.children):
+            raise "Número de argumentos incorreto"    
         for i in range(len(args)):
-
             argumento = args[i].children[0].value
             valor_arg = self.children[i].children[0].evaluate(symbol_table)
             table_local.create(argumento)
-
             table_local.set(args[i].children[0].value,valor_arg)
-
         block = func.children[-1]
-
-        return block.evaluate(table_local)
+        print('*'*80)
+        print(block.children)
+        block_return = block.evaluate(table_local)
+        print("passando aqui uma vez", block_return)
+        return block_return
 
 
 class ReturnNode(Node):
@@ -278,6 +281,7 @@ class ReturnNode(Node):
         super().__init__(value = 'return', children = children)
 
     def evaluate(self,symbol_table):
+        print('entrou no return')
         return self.children[0].evaluate(symbol_table)
 
 
@@ -480,7 +484,6 @@ class Parser():
         elif Parser.tokenizer.next.type == 'if':
             Parser.tokenizer.select_next()
             condicional = Parser.parse_bool_expression()
-            # Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type != 'then':
                 raise "Erro de sintaxe - falta o then"
             Parser.tokenizer.select_next()
