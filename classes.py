@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod 
 
+
 SUB  = 'MINUS'
 SOMA = 'PLUS'
 MULT = 'MULT'
