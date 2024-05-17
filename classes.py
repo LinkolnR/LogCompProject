@@ -14,13 +14,10 @@ QUEBRA = '\n'
 IDENTIFIER = 'identifier'
 ATRIBUICAO = 'atribuicao'
 
-
-
 symbols = [SOMA, SUB, MULT, DIV, PARE, PARD, 'int','=','==','>','<']
 # symbols_tokens = ["+","-","*","/","=","(",")"]
 
-especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local']
-
+especial_words = ['print','while','do','end','if','else','then','or','and','read','not','local','function','return',","]
 
 # Classes
 class WriteNasm():
@@ -134,10 +131,8 @@ class BinOp (Node):
         super().__init__(value, children)
 
     def evaluate(self,symbol_table):
-        right = self.children[1].evaluate(symbol_table)[0]
-        self.writeNasm.body += "PUSH EAX\n"
-        left  = self.children[0].evaluate(symbol_table)[0]
-        self.writeNasm.body += "POP EBX \n"
+        left  = self.children[0]
+        right = self.children[1]
         
         if self.value == SOMA:
             self.writeNasm.body += "ADD EAX, EBX\n"
@@ -152,11 +147,12 @@ class BinOp (Node):
             self.writeNasm.body += "IDIV EBX\n"
             return (left // right,'int')
         elif self.value == '==':
-            # left_string = left
-            # right_string = right
-            if type(left) == bool:
-                if left:
-                    left = 1
+
+            left_string = left.evaluate(symbol_table)[0]
+            right_string = right.evaluate(symbol_table)[0]
+            if type(left_string) == bool:
+                if left_string:
+                    left_string = 1
                 else:
                     left = 0        
             if type(right) == bool:
@@ -196,8 +192,8 @@ class BinOp (Node):
                 if right:
                     right = 1
                 else:
-                    right = 0
-            return (str(left) + str(right),'concat')
+                    right_string = 0
+            return (str(left_string) + str(right_string),'concat')
         
 class UnOp (Node):  
     def __init__(self, value, children):
@@ -235,8 +231,8 @@ class StrVal(Node):
         return (self.value, 'str')
 
 class NoOp(Node):
-    def __init__(self):
-        pass
+    def __init__(self, value = None):
+        self.value = value
     
     def evaluate(self,symbol_table):
         pass
@@ -267,10 +263,7 @@ class AssingNode(Node):
     def evaluate(self, symbol_table):
         left  = self.children[0]
         right = self.children[1]
-        symbol_table.set(left,right.evaluate(symbol_table))
-        position = symbol_table.get(left.value)[2]
-        self.writeNasm.body += f"MOV [EBP-{position}], EAX\n"
-        
+        symbol_table.set(left.value,right.evaluate(symbol_table))
 
 class Identifier(Node):
     def __init__(self, value):
@@ -288,9 +281,17 @@ class Block(Node):
     def add_statement(self, statement: Node):
         self.children.append(statement)
 
-    def evaluate(self,symbol_table):
+    def evaluate(self,symbol_table):    
+        print('blockoipasdkjnsajkndsajk')
+        print(self.children)
         for child in self.children:
+            if (child.value == "return"):
+                print('evaluate do return:')
+                auxiliar = child.evaluate(symbol_table)
+                print(auxiliar)
+                return auxiliar
             child.evaluate(symbol_table)
+
 
 class SymbolTable():
     def __init__(self):
@@ -299,22 +300,38 @@ class SymbolTable():
 
 
     def set(self, key, value):
-        if key.value in self.table.keys():
-            desloc = self.table[key.value][2]
-            self.table[key.value] = (value[0],value[1], desloc)
-            
+
+        if key in self.table.keys():
+            self.table[key] = (value[0],value[1])
         else:
             raise "Variável não declarada"
     
     def create(self,key):
-        if key.value not in self.table.keys():
-            self.table[key.value] = (None, None, self.desloc)
-            self.desloc += 4
+        if key not in self.table.keys():
+            self.table[key] = None
         else:
             raise "Variável já declarada"
 
     def get(self, key):
         return self.table[key]
+
+class FuncTable():
+    table = {}
+    @staticmethod
+    def set( key, value ):
+        if key.value in FuncTable.table.keys():
+            FuncTable.table[key.value] = value
+        else:
+            raise "Funcao não declarada"
+    @staticmethod
+    def create( key ):
+        if key.value not in FuncTable.table.keys():
+            FuncTable.table[key.value] = None
+        else:
+            raise "Funcao já declarada"
+    @staticmethod
+    def get( key ):
+        return FuncTable.table[key]
 
 class WhileNode(Node):
     def __init__(self, value, children):
@@ -346,7 +363,6 @@ class IfNode(Node):
             self.writeNasm.body += f"ELSE_BLOCK{self.id}:\n"
         elif len(self.children) == 3:
             self.children[2].evaluate(symbol_table)
-        self.writeNasm.body += f"EXIT_IF_BLOCK{self.id}:\n"
 
 class VarDecNode(Node):
     def __init__(self,children):
@@ -354,11 +370,10 @@ class VarDecNode(Node):
 
     def evaluate(self,symbol_table):
         if len(self.children) == 1:
-            symbol_table.create(self.children[0])
-            self.writeNasm.body += f"PUSH DWORD 0\n"
+            symbol_table.create(self.children[0].value)
         else:
-            symbol_table.create(self.children[0])
-            symbol_table.set(self.children[0],self.children[1].evaluate(symbol_table))
+            symbol_table.create(self.children[0].value)
+            symbol_table.set(self.children[0].value,self.children[1].evaluate(symbol_table))
 
 class ReadNode(Node):
     def __init__(self):
@@ -374,10 +389,49 @@ class ReadNode(Node):
         self.writeNasm.body += f"MOV EAX, DWORD [scanint]\n"
         return (input_, 'int')
 
+class FunctionDec(Node):
+    def __init__(self, children):
+        super().__init__(value = None, children = children)
+
+    def evaluate(self,symbol_table):
+        FuncTable.create(self.children[0])
+        FuncTable.set(self.children[0],self)
+
+class FunctionCall(Node):
+    def __init__(self, value ,children):
+        super().__init__(value = value, children = children)
+
+    def evaluate(self,symbol_table):
+        table_local = SymbolTable()
+        func = FuncTable.get(self.value)
+        print(func.children[2].children)
+        args = func.children[1:-1]
+        if len(args) != len(self.children):
+            raise "Número de argumentos incorreto"    
+        for i in range(len(args)):
+            argumento = args[i].children[0].value
+            valor_arg = self.children[i].children[0].evaluate(symbol_table)
+            table_local.create(argumento)
+            table_local.set(args[i].children[0].value,valor_arg)
+        block = func.children[-1]
+        print('*'*80)
+        print(block.children)
+        block_return = block.evaluate(table_local)
+        print("passando aqui uma vez", block_return)
+        return block_return
+
+
+class ReturnNode(Node):
+    def __init__(self, children):
+        super().__init__(value = 'return', children = children)
+
+    def evaluate(self,symbol_table):
+        print('entrou no return')
+        return self.children[0].evaluate(symbol_table)
+
 
 
 # Tokenizer
-
 class Token():
 
     type : str 
@@ -386,7 +440,6 @@ class Token():
     def __init__(self, type, value):
         self.type = type
         self.value = value
-
 
 class Tokenizer():
     def __init__(self, source):
@@ -473,7 +526,9 @@ class Tokenizer():
                 string = ''.join(aux)
                 self.next = Token('string',string )
             else:
-                while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_"):
+                while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" or self.source[self.position] == ","):
+                    if self.source[self.position] == "," and len(aux) > 0:
+                        break
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
                     if (self.position == (len(self.source))):
@@ -516,6 +571,17 @@ class Parser():
                 expression = Parser.parse_bool_expression()
                 assign_node = AssingNode([identifier, expression])
                 return assign_node
+            elif Parser.tokenizer.next.type == PARE:
+                Parser.tokenizer.select_next()
+                args = []
+                while Parser.tokenizer.next.type != PARD:
+
+                    args.append(VarDecNode([Parser.parse_bool_expression()]))
+                    if Parser.tokenizer.next.type == ',':
+                        Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                return FunctionCall(identifier.value,args)
+
             else:
                 raise "Erro de sintaxe - falta o simbolo de atribuição ou identificador deveria ser um nome especial/reservado"
         elif Parser.tokenizer.next.type == 'local':
@@ -563,7 +629,6 @@ class Parser():
         elif Parser.tokenizer.next.type == 'if':
             Parser.tokenizer.select_next()
             condicional = Parser.parse_bool_expression()
-            # Parser.tokenizer.select_next()
             if Parser.tokenizer.next.type != 'then':
                 raise "Erro de sintaxe - falta o then"
             Parser.tokenizer.select_next()
@@ -590,6 +655,38 @@ class Parser():
             if Parser.tokenizer.next.type not in ['QUEBRA','EOF']:
                 raise "Erro de sintaxe - não pode ter statement após o end do if"
             return IfNode('if', [condicional, if_block])
+        
+        elif Parser.tokenizer.next.type == 'function':
+            Parser.tokenizer.select_next()
+            
+            if Parser.tokenizer.next.type == IDENTIFIER:
+                identifier = Identifier(Parser.tokenizer.next.value)
+                Parser.tokenizer.select_next()
+                if Parser.tokenizer.next.type == PARE:
+                    Parser.tokenizer.select_next()
+                else:
+                    raise "faltando parenteses"
+                args = []
+                while Parser.tokenizer.next.type != PARD:
+                    args.append(VarDecNode([Identifier(Parser.tokenizer.next.value)]))
+                    Parser.tokenizer.select_next()
+                    if Parser.tokenizer.next.type == ',':
+                        Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                if Parser.tokenizer.next.type != 'QUEBRA':
+                    raise "Erro de sintaxe - falta a quebra de linha"
+                block = Block(children=[])
+                while Parser.tokenizer.next.type != 'end':
+                    node = Parser.parse_statement()
+                    block.children.append(node)
+                Parser.tokenizer.select_next()
+                return FunctionDec([identifier]+args+[block])
+            else:
+                raise "Faltou o nome da função"
+        elif Parser.tokenizer.next.type == 'return':
+            Parser.tokenizer.select_next()
+            expression = Parser.parse_bool_expression()
+            return ReturnNode([expression])
         else:
             raise "Erro de sintaxe - parenteses sem fechar ou falta algum termo"
     @staticmethod
@@ -675,7 +772,6 @@ class Parser():
         
     @staticmethod
     def parse_factor():
-
         if Parser.tokenizer.next.type == 'int':
             inteiro = IntVal(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
@@ -690,7 +786,17 @@ class Parser():
         elif Parser.tokenizer.next.type == IDENTIFIER:
             identifier = Identifier(Parser.tokenizer.next.value)
             Parser.tokenizer.select_next()
-            return identifier
+            if Parser.tokenizer.next.type == PARE:
+                Parser.tokenizer.select_next()
+                args = []
+                while Parser.tokenizer.next.type != PARD:
+                    args.append(VarDecNode([Parser.parse_bool_expression()]))
+                    if Parser.tokenizer.next.type == ',':
+                        Parser.tokenizer.select_next()
+                Parser.tokenizer.select_next()
+                return FunctionCall(identifier.value,args)
+            else:    
+                return identifier
         elif Parser.tokenizer.next.type in [SOMA, SUB,'not']:
             if Parser.tokenizer.next.type == SOMA:
                 Parser.tokenizer.select_next()
@@ -729,7 +835,6 @@ class Parser():
         teste = Parser.block.evaluate(symbol_table = SymbolTable())
         return teste
     
-
 class Pre_pro():
     def __init__(self):
         pass
