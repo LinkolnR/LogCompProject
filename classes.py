@@ -158,16 +158,11 @@ class Block(Node):
         self.children.append(statement)
 
     def evaluate(self,symbol_table):    
-        print('blockoipasdkjnsajkndsajk')
-        print(self.children)
         for child in self.children:
             if (child.value == "return"):
-                print('evaluate do return:')
                 auxiliar = child.evaluate(symbol_table)
-                print(auxiliar)
                 return auxiliar
             child.evaluate(symbol_table)
-
 
 class SymbolTable():
     def __init__(self):
@@ -259,7 +254,6 @@ class FunctionCall(Node):
     def evaluate(self,symbol_table):
         table_local = SymbolTable()
         func = FuncTable.get(self.value)
-        print(func.children[2].children)
         args = func.children[1:-1]
         if len(args) != len(self.children):
             raise "Número de argumentos incorreto"    
@@ -269,10 +263,7 @@ class FunctionCall(Node):
             table_local.create(argumento)
             table_local.set(args[i].children[0].value,valor_arg)
         block = func.children[-1]
-        print('*'*80)
-        print(block.children)
         block_return = block.evaluate(table_local)
-        print("passando aqui uma vez", block_return)
         return block_return
 
 
@@ -281,7 +272,6 @@ class ReturnNode(Node):
         super().__init__(value = 'return', children = children)
 
     def evaluate(self,symbol_table):
-        print('entrou no return')
         return self.children[0].evaluate(symbol_table)
 
 
@@ -383,6 +373,10 @@ class Tokenizer():
             else:
                 while (self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" or self.source[self.position] == ","):
                     if self.source[self.position] == "," and len(aux) > 0:
+                        break
+                    elif self.source[self.position] == "," and len(aux) == 0:
+                        aux.append(self.source[self.position])
+                        self.position = self.position + 1
                         break
                     aux.append(self.source[self.position])
                     self.position = self.position + 1
